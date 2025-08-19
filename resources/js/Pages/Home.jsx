@@ -6,6 +6,7 @@ import Carousel from '../UI/Carousel'
 import Edukasi from '../UI/Edukasi'
 import Mitra from '../UI/Mitra'
 import FAQ from '../UI/Faq'
+import Footer from '../Components/Footer'
 
 const Home = () => {
   return (
@@ -17,6 +18,7 @@ const Home = () => {
       <Edukasi />
       <Mitra />
       <FAQ />
+      <Footer />
     </>
   )
 }

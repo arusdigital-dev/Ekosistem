@@ -43,7 +43,7 @@ const Faq = () => {
     ];
 
     return (
-        <div className="bg-gray-50 py-16 px-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="bg-white py-16 px-4" style={{ fontFamily: 'Inter, sans-serif' }}>
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">
@@ -61,21 +61,20 @@ const Faq = () => {
                 {/* FAQ Grid */}
                 <div className="grid md:grid-cols-2 gap-6 items-start">
                     {faqData.map((faq, index) => (
-                        <div key={index} className="bg-white rounded-lg shadow-sm border-b" style={{ borderBottomColor: '#274B9C', borderBottomWidth: '1px' }}>
+                        <div key={index} className="bg-white border-b" style={{ borderBottomColor: '#274B9C', borderBottomWidth: '1px' }}>
                             <button
                                 onClick={() => toggleAccordion(index)}
                                 className="w-full p-6 text-left flex justify-between items-start hover:bg-gray-50 transition-colors duration-200"
                             >
-                                <span 
+                                <span
                                     className="font-semibold text-sm md:text-base pr-4 leading-relaxed"
                                     style={{ color: '#274B9C' }}
                                 >
                                     {faq.question}
                                 </span>
                                 <svg
-                                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ease-in-out ${
-                                        openIndex === index ? 'rotate-180' : ''
-                                    }`}
+                                    className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ease-in-out ${openIndex === index ? 'rotate-180' : ''
+                                        }`}
                                     style={{ color: '#274B9C' }}
                                     fill="none"
                                     stroke="currentColor"
@@ -84,9 +83,8 @@ const Faq = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </button>
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                                openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                            }`}>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                }`}>
                                 <div className="px-6 pb-6">
                                     <p className="text-gray-600 text-sm md:text-base leading-relaxed">
                                         {faq.answer}
