@@ -4,7 +4,7 @@ import Background from '../images/Hero.png'
 
 const Hero = () => {
   return (
-    <div className="relative min-h-screen bg-center bg-no-repeat pb-32"
+    <div className="relative min-h-screen bg-center bg-no-repeat pb-[180px]"
       style={{
         backgroundImage: `url(${Background})`,
         margin: '0',

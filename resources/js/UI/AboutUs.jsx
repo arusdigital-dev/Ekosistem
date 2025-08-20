@@ -3,7 +3,7 @@ import Infographic from '../images/infographic.png'
 
 const AboutUs = () => {
     return (
-        <div className="py-16 px-8 bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="pt-48 pb-[120px] px-8 bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     {/* Left Side - Image */}

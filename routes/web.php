@@ -9,4 +9,6 @@ Route::get('/', function () {
     return Inertia::render('Home');
 });
 
-
+Route::get('/Ekosistem-Mangrove', function () {
+    return Inertia::render('Mangrove');
+});
