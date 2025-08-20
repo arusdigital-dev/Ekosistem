@@ -1,26 +1,25 @@
-import React from 'react'
-import Hero from '../UI/Hero'
-import AboutUs from '../UI/AboutUs'
-import Kegiatan from '../UI/Kegiatan'
-import Carousel from '../UI/Carousel'
-import Edukasi from '../UI/Edukasi'
-import Mitra from '../UI/Mitra'
-import FAQ from '../UI/Faq'
-import Footer from '../Components/Footer'
+import React from "react";
+import Hero from "../UI/Hero";
+
+import FAQ from "../UI/Faq";
+import Footer from "../Components/Footer";
+import WhoDugong from "@/UI/WhoDugong";
+import Populasi from "@/UI/Populasi";
+import Habitat from "@/UI/Habitat";
+import LaporSection from "@/UI/LaporSection";
 
 const Home = () => {
-  return (
-    <>
-      <Hero />
-      <AboutUs />
-      <Kegiatan />
-      <Carousel />
-      <Edukasi />
-      <Mitra />
-      <FAQ />
-      <Footer />
-    </>
-  )
-}
+    return (
+        <>
+            <Hero />
+            <WhoDugong />
+            <Populasi />
+            <Habitat />
+            <LaporSection />
+            <FAQ />
+            <Footer />
+        </>
+    );
+};
 
-export default Home
+export default Home;
