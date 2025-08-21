@@ -32,7 +32,7 @@ const cards = [
 
 const Edukasi = () => {
   return (
-    <div className="w-full bg-white mt-20" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div className="w-full bg-white mt-20">
       {/* Header */}
       <div className="text-center -mt-2">
         <p className="text-blue-500 text-sm font-bold mb-2">
@@ -46,7 +46,7 @@ const Edukasi = () => {
       {/* Cards Container with Sticky Scroll Effect */}
       <div
         id="cards"
-        className="list-none grid grid-cols-1 gap-[2vw] mb-[2vw] p-20"
+        className="list-none grid grid-cols-1 gap-[14vw] mb-[2vw] p-20"
         style={{
           gridTemplateRows: 'repeat(3, 25vw)',
           paddingBottom: 'calc(3 * 0.5em)'

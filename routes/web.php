@@ -12,3 +12,17 @@ Route::get('/', function () {
 Route::get('/Ekosistem-Mangrove', function () {
     return Inertia::render('Mangrove');
 });
+
+Route::get('/Ekosistem-Lamun', function () {
+    return Inertia::render('Lamun');
+});
+
+Route::get('/Berita', function () {
+    return Inertia::render('Berita');
+});
+
+Route::get('/berita/{id}', function ($id) {
+    return Inertia::render('BeritaDetail', [
+        'beritaId' => $id
+    ]);
+});

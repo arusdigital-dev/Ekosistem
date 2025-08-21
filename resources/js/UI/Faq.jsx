@@ -43,7 +43,7 @@ const Faq = () => {
     ];
 
     return (
-        <div className="bg-white py-16 px-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="bg-white py-16 px-4">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">

@@ -2,7 +2,7 @@ import React from 'react';
 
 const Mitra = () => {
     return (
-        <div className="min-h-screen bg-white pb-20 " style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="min-h-screen bg-white pb-12 mt-24">
             {/* Header Section */}
             <div className="text-center py-12">
                 <h1 className="text-3xl md:text-4xl font-bold text-[#274B9C] mb-12">

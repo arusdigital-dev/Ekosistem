@@ -2,7 +2,7 @@ import React from 'react'
 
 const Kegiatan = () => {
     return (
-        <div className="pb-[120px] px-8 bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="pb-[120px] px-8 bg-white">
             <div className="max-w-6xl mx-auto text-center">
                 {/* Header */}
                 <div className="mb-12">

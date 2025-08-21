@@ -49,7 +49,7 @@ const Carousel = () => {
     };
 
     return (
-        <div className="py-16 px-8 bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
+        <div className="py-16 px-8 bg-white">
             <div className="max-w-6xl mx-auto">
                 {/* Combined Header and Carousel Container */}
                 <div className="relative bg-gray-100 rounded-3xl p-8">

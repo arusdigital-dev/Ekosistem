@@ -1,8 +1,15 @@
 import React from 'react'
+import { MangroveHero, MangroveSections } from '../UI-Mangrove'
+import Footer from '../Components/Footer'
+
 
 const Mangrove = () => {
   return (
-    <div>Ekosistem-Mangrove</div>
+    <>
+      <MangroveHero />
+      <MangroveSections />
+      <Footer />
+    </>
   )
 }
 
