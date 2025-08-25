@@ -1,92 +1,107 @@
-import React from "react";
-import Background from "../images/Hero.png";
-import { FiArrowUpRight } from "react-icons/fi";
+import React, { useState } from "react";
+import { FiMenu, FiX, FiArrowUpRight } from "react-icons/fi";
+
 const Navbar = () => {
+    const [open, setOpen] = useState(false);
+
     return (
-        <nav className="flex items-center justify-between px-10 py-3 bg-[#F3F4F6] backdrop-blur-sm rounded-full my-3 max-w-6xl mx-auto">
-            {/* Logo */}
-            <div className="bg-blue-800 text-white px-6 py-2 rounded-full font-inter font-bold">
-                Logo
-            </div>
+        <nav className="fixed top-0 left-0 right-0 z-[1000]">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+                <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl shadow-md">
+                    <div className="flex items-center justify-between px-4 py-2">
+                        {/* Logo */}
+                        <a href="/" className="inline-flex items-center gap-2">
+                            <div className="bg-blue-800 text-white px-4 py-2 rounded-full font-semibold">
+                                Logo
+                            </div>
+                        </a>
 
-            {/* Navigation Menu */}
-            <div className="flex items-center space-x-12">
-                {/* Language Selector */}
-                <div className="flex items-center space-x-1">
-                    <img
-                        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjE4IiBmaWxsPSIjRkYwMDAwIi8+CjxyZWN0IHk9IjkiIHdpZHRoPSIyNCIgaGVpZ2h0PSI5IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo="
-                        alt="ID"
-                        className="w-6 h-4"
-                    />
-                    <span
-                        className="text-sm font-inter font-bold"
-                        style={{ color: "#274B9C" }}
-                    >
-                        Id
-                    </span>
-                    <svg
-                        className="w-4 h-4"
-                        style={{ color: "#274B9C" }}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                    >
-                        <path
-                            fillRule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                </div>
+                        {/* Desktop Menu */}
+                        <div className="hidden md:flex items-center gap-8">
+                            <a
+                                href="/"
+                                className="font-semibold text-[#274B9C]"
+                            >
+                                Beranda
+                            </a>
+                            <a
+                                href="/laporan"
+                                className="font-semibold text-[#274B9C]"
+                            >
+                                Laporan
+                            </a>
+                            <a
+                                href="/peta"
+                                className="font-semibold text-[#274B9C]"
+                            >
+                                Peta
+                            </a>
+                            <a
+                                href="/publikasi"
+                                className="font-semibold text-[#274B9C]"
+                            >
+                                Publikasi Dugong
+                            </a>
+                            <div className="font-semibold text-[#274B9C] cursor-default">
+                                Tentang
+                            </div>
+                            <a
+                                href="#ekosistem"
+                                className="bg-blue-800 text-white px-4 py-2 rounded-full font-semibold inline-flex items-center gap-2"
+                            >
+                                Ekosistem Pesisir{" "}
+                                <FiArrowUpRight className="h-5 w-5" />
+                            </a>
+                        </div>
 
-                {/* Menu Items */}
-                <a
-                    href="#"
-                    className="font-inter font-bold"
-                    style={{ color: "#274B9C" }}
-                >
-                    Beranda
-                </a>
-                <a
-                    href="#"
-                    className="font-inter font-bold"
-                    style={{ color: "#274B9C" }}
-                >
-                    Peta
-                </a>
-                <a
-                    href="#"
-                    className="font-inter font-bold"
-                    style={{ color: "#274B9C" }}
-                >
-                    Publikasi Dungong
-                </a>
+                        {/* Mobile Toggle */}
+                        <button
+                            className="md:hidden p-2 rounded-lg border border-gray-300"
+                            onClick={() => setOpen((v) => !v)}
+                            aria-label="Toggle Menu"
+                        >
+                            {open ? <FiX /> : <FiMenu />}
+                        </button>
+                    </div>
 
-                {/* Dropdown Items */}
-
-                <div className="flex items-center space-x-1">
-                    <a
-                        href="#"
-                        className="font-inter font-bold"
-                        style={{ color: "#274B9C" }}
-                    >
-                        Tentang
-                    </a>
-                    <svg
-                        className="w-4 h-4"
-                        style={{ color: "#274B9C" }}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                    >
-                        <path
-                            fillRule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                </div>
-                <div className="bg-blue-800 text-white px-6 py-2 rounded-full font-inter font-bold flex items-center">
-                    Ekosistem Pesisir
-                    <FiArrowUpRight className="h-5 w-5" />
+                    {/* Mobile Menu */}
+                    {open && (
+                        <div className="md:hidden px-4 pb-4 space-y-2">
+                            <a
+                                href="/"
+                                className="block font-semibold text-[#274B9C]"
+                            >
+                                Beranda
+                            </a>
+                            <a
+                                href="/laporan"
+                                className="block font-semibold text-[#274B9C]"
+                            >
+                                Laporan
+                            </a>
+                            <a
+                                href="/peta"
+                                className="block font-semibold text-[#274B9C]"
+                            >
+                                Peta
+                            </a>
+                            <a
+                                href="/publikasi"
+                                className="block font-semibold text-[#274B9C]"
+                            >
+                                Publikasi Dugong
+                            </a>
+                            <div className="block font-semibold text-[#274B9C]">
+                                Tentang
+                            </div>
+                            <a
+                                href="#ekosistem"
+                                className="block text-center bg-blue-800 text-white px-4 py-2 rounded-full font-semibold"
+                            >
+                                Ekosistem Pesisir
+                            </a>
+                        </div>
+                    )}
                 </div>
             </div>
         </nav>
