@@ -6,16 +6,16 @@ import "maplibre-gl/dist/maplibre-gl.css";
  * MapLibre map:
  * - OSM raster basemap
  * - 3 vector sources: mangrove, lamun, dugong
- * - Styled:
- *   - mangrove: fill hijau + outline
- *   - lamun:    fill biru  + outline
- *   - dugong:   point kuning + stroke
- * - Toggle visibility via props
+ * - Styled (sedikit dipoles, tanpa mengubah fungsi/ID layer):
+ *   - mangrove: fill hijau + outline dengan ketebalan dinamis
+ *   - lamun: fill biru + outline dengan ketebalan dinamis
+ *   - dugong: point kuning + stroke (radius dinamis)
+ * - Toggle visibility via props (awalnya semua off dari parent)
  */
 export default function MapView({
-    visibleMangrove = true,
-    visibleLamun = true,
-    visibleDugong = true,
+    visibleMangrove = false,
+    visibleLamun = false,
+    visibleDugong = false,
 }) {
     const mapContainerRef = useRef(null);
     const mapRef = useRef(null);
@@ -107,8 +107,18 @@ export default function MapView({
                         "source-layer": "mangrove",
                         paint: {
                             "line-color": "#1e8449",
-                            "line-width": 1,
-                            "line-opacity": 0.9,
+                            "line-opacity": 0.95,
+                            "line-width": [
+                                "interpolate",
+                                ["linear"],
+                                ["zoom"],
+                                5,
+                                0.6,
+                                12,
+                                1.6,
+                                16,
+                                2.8,
+                            ],
                         },
                     },
 
@@ -130,8 +140,18 @@ export default function MapView({
                         "source-layer": "lamun",
                         paint: {
                             "line-color": "#21618c",
-                            "line-width": 1,
-                            "line-opacity": 0.9,
+                            "line-opacity": 0.95,
+                            "line-width": [
+                                "interpolate",
+                                ["linear"],
+                                ["zoom"],
+                                5,
+                                0.6,
+                                12,
+                                1.6,
+                                16,
+                                2.8,
+                            ],
                         },
                     },
 
@@ -154,8 +174,10 @@ export default function MapView({
                                 16,
                                 9,
                             ],
+                            "circle-opacity": 0.95,
                             "circle-stroke-width": 1,
                             "circle-stroke-color": "#1f1f1f",
+                            "circle-stroke-opacity": 0.9,
                         },
                     },
                 ],
@@ -182,37 +204,47 @@ export default function MapView({
             const f = e.features?.[0];
             if (!f) return;
             const p = f.properties || {};
+
             let propsPretty = "";
             if (p.props) {
                 try {
                     const parsed = JSON.parse(p.props);
-                    propsPretty = `<pre style="margin:0">${escapeHtml(
+                    propsPretty = `<pre style="margin:0;white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(
                         JSON.stringify(parsed, null, 2)
                     )}</pre>`;
                 } catch {
-                    propsPretty = `<pre style="margin:0">${escapeHtml(
+                    propsPretty = `<pre style="margin:0;white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(
                         String(p.props)
                     )}</pre>`;
                 }
             }
+
             const content = `
-        <div style="font-size:12px">
-          <div style="font-weight:600;margin-bottom:4px">${title}</div>
-          ${
-              p.name
-                  ? `<div><strong>Nama:</strong> ${escapeHtml(p.name)}</div>`
-                  : ""
-          }
-          <div><strong>ID:</strong> ${escapeHtml(
-              String(p.id ?? f.id ?? "")
-          )}</div>
-          ${
-              propsPretty
-                  ? `<div style="margin-top:6px"><strong>Props</strong><br/>${propsPretty}</div>`
-                  : ""
-          }
-        </div>
-      `;
+          <div style="font-size:12px;line-height:1.45">
+            <div style="font-weight:700;margin-bottom:6px">${escapeHtml(
+                title
+            )}</div>
+            ${
+                p.name
+                    ? `<div style="margin-bottom:2px"><strong>Nama:</strong> ${escapeHtml(
+                          p.name
+                      )}</div>`
+                    : ""
+            }
+            <div style="margin-bottom:2px"><strong>ID:</strong> ${escapeHtml(
+                String(p.id ?? f.id ?? "")
+            )}</div>
+            <div style="margin-bottom:2px"><strong>Koordinat (lon, lat):</strong> ${fmtCoord(
+                e.lngLat.lng
+            )}, ${fmtCoord(e.lngLat.lat)}</div>
+            ${
+                propsPretty
+                    ? `<div style="margin-top:6px"><strong>Detail Atribut</strong><br/>${propsPretty}</div>`
+                    : ""
+            }
+          </div>
+        `;
+
             map.getCanvas().style.cursor = "pointer";
             popup.setLngLat(e.lngLat).setHTML(content).addTo(map);
         };
@@ -221,7 +253,7 @@ export default function MapView({
 
         map.on("load", () => {
             setIsLoaded(true);
-            // set visibility awal sesuai props
+            // set visibility awal sesuai props (awal off dari parent)
             setVisibility(LAYER.mangroveFill, visibleMangrove);
             setVisibility(LAYER.mangroveLine, visibleMangrove);
             setVisibility(LAYER.lamunFill, visibleLamun);
@@ -247,6 +279,7 @@ export default function MapView({
         );
 
         mapRef.current = map;
+
         return () => {
             popup.remove();
             map.remove();
@@ -255,7 +288,7 @@ export default function MapView({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // sync visibility on prop change
+    // sync visibility on prop change (tidak mengubah fungsi)
     useEffect(() => {
         if (!isLoaded) return;
         setVisibility(LAYER.mangroveFill, visibleMangrove);
@@ -274,10 +307,8 @@ export default function MapView({
     }, [visibleDugong, isLoaded]);
 
     return (
-        <div
-            ref={mapContainerRef}
-            style={{ width: "100%", height: "calc(100vh - 64px)" }}
-        />
+        // penting: biarkan map mengisi parent 100%
+        <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
     );
 }
 
@@ -288,4 +319,10 @@ function escapeHtml(str) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+function fmtCoord(num) {
+    const n = Number(num);
+    if (!Number.isFinite(n)) return String(num);
+    return n.toFixed(5);
 }
