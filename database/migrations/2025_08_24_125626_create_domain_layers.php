@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->nullable();
             $table->jsonb('props')->nullable();
-            $table->geometry('geom', 'MULTIPOLYGON', 4326);
+            $table->geometry('geom', null, 4326);
             $table->timestamps();
         });
 
@@ -19,7 +19,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->nullable();
             $table->jsonb('props')->nullable();
-            $table->geometry('geom', 'MULTIPOLYGON', 4326);
+            $table->geometry('geom', null, 4326);
             $table->timestamps();
         });
 

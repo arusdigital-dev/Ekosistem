@@ -20,18 +20,19 @@ class DummyBintanSeeder extends Seeder
 
     public function run(): void
     {
+        // Pastikan categories ada
         $cats = collect(['mangrove','lamun','dugong'])
             ->mapWithKeys(fn($n) => [$n => Category::firstOrCreate(['name'=>$n])]);
 
-        // Random geodetic point inside BBOX
+        // Random geodetic point inside BBOX (EPSG:4326)
         $randPoint = function() {
             [$minx,$miny,$maxx,$maxy] = self::BBOX;
             $lon = $minx + mt_rand()/mt_getrandmax() * ($maxx - $minx);
             $lat = $miny + mt_rand()/mt_getrandmax() * ($maxy - $miny);
-            return Point::makeGeodetic($lat, $lon); // SRID default 4326 (sesuai config)
+            return Point::makeGeodetic($lat, $lon); // SRID 4326
         };
 
-        // Persegi panjang di sekitar titik pusat (pakai LineString + Point geodetik)
+        // Persegi panjang di sekitar titik pusat
         $rectPoly = function(Point $c, float $dx=0.05, float $dy=0.035): Polygon {
             $lon = $c->getLongitude();
             $lat = $c->getLatitude();
@@ -47,64 +48,83 @@ class DummyBintanSeeder extends Seeder
             return Polygon::make([$ring]);
         };
 
-        // Kawasan Mangrove (MultiPolygon dari satu Polygon)
-        foreach (range(1,3) as $i) {
-            $poly = $rectPoly($randPoint());
-            Mangrove::create([
-                'name'  => "Kawasan Mangrove $i",
-                'props' => ['source'=>'dummy'],
-                'geom'  => MultiPolygon::make([$poly]), // <-- oper objek Polygon, bukan getCoordinates()
-            ]);
-        }
-
-        // Kawasan Lamun
+        // ====== LAMUN: 3 POLYGON + 3 POINT ======
         foreach (range(1,3) as $i) {
             $poly = $rectPoly($randPoint(), 0.04, 0.03);
             Lamun::create([
-                'name'  => "Kawasan Lamun $i",
-                'props' => ['source'=>'dummy'],
+                'name'  => "Lamun Kawasan $i",
+                'props' => ['source'=>'dummy','kondisi'=>rand(0,1)?'hidup':'mati'],
                 'geom'  => MultiPolygon::make([$poly]),
             ]);
         }
+        foreach (range(1,3) as $i) {
+            Lamun::create([
+                'name'  => "Lamun Titik $i",
+                'props' => ['source'=>'dummy','kondisi'=>rand(0,1)?'hidup':'mati'],
+                'geom'  => $randPoint(),
+            ]);
+        }
 
-        // Titik observasi Dugong acak
-        foreach (range(1,80) as $i) {
+        // ====== MANGROVE: 3 POLYGON + 3 POINT ======
+        foreach (range(1,3) as $i) {
+            $poly = $rectPoly($randPoint());
+            Mangrove::create([
+                'name'  => "Mangrove Kawasan $i",
+                'props' => ['source'=>'dummy','kondisi'=>rand(0,1)?'hidup':'mati'],
+                'geom'  => MultiPolygon::make([$poly]),
+            ]);
+        }
+        foreach (range(1,3) as $i) {
+            Mangrove::create([
+                'name'  => "Mangrove Titik $i",
+                'props' => ['source'=>'dummy','kondisi'=>rand(0,1)?'hidup':'mati'],
+                'geom'  => $randPoint(),
+            ]);
+        }
+
+        // ====== DUGONG: 6 POINT ======
+        foreach (range(1,6) as $i) {
             Dugong::create([
-                'props'       => ['source'=>'dummy','who'=>'observer '.Str::random(4)],
+                'props'       => [
+                    'source'=>'dummy',
+                    'who'=>'observer '.Str::random(4),
+                    'kondisi'=>collect(['hidup','mati','terluka'])->random(),
+                ],
                 'geom'        => $randPoint(),
-                'observed_at' => now()->subDays(rand(0,365)),
+                'observed_at' => now()->subDays(rand(0,60)),
             ]);
         }
 
-        // Laporan spasial pending (dugong → point)
-        foreach (range(1,10) as $i) {
-            LaporanSpasial::create([
-                'category_id' => $cats['dugong']->id,
-                'status'      => 'pending',
-                'props'       => ['nama'=>'pelapor '.Str::random(3), 'deskripsi'=>'dugong terlihat'],
-                'geom'        => $randPoint(),
-            ]);
-        }
+        // ====== LAPORAN SPASIAL: 10 DATA (5 approved, 3 pending, 2 rejected) ======
+        $statuses = array_merge(
+            array_fill(0,5,'approved'),
+            array_fill(0,3,'pending'),
+            array_fill(0,2,'rejected'),
+        );
 
-        // Laporan spasial pending (mangrove/lamun → polygon)
-        foreach (range(1,10) as $i) {
-            $cat = rand(0,1) ? 'mangrove' : 'lamun';
-            $poly = $rectPoly($randPoint(), 0.02, 0.015);
+        foreach ($statuses as $status) {
+            $cat = collect(['mangrove','lamun','dugong'])->random();
+            // Untuk lamun & mangrove boleh polygon/point; dugong umumnya point
+            $isPolygon = in_array($cat, ['mangrove','lamun']) ? (bool)rand(0,1) : false;
+            $geom = $isPolygon ? $rectPoly($randPoint(), 0.02, 0.015) : $randPoint();
+
             LaporanSpasial::create([
                 'category_id' => $cats[$cat]->id,
-                'status'      => 'pending',
-                'props'       => ['nama'=>'pelapor '.Str::random(3), "deskripsi"=>"laporan $cat"],
-                'geom'        => $poly, // model cast: Geometry/Polygon sesuai migrasi
-            ]);
-        }
-
-        // Laporan approved
-        foreach (range(1,10) as $i) {
-            LaporanSpasial::create([
-                'category_id' => $cats['dugong']->id,
-                'status'      => 'approved',
-                'props'       => ['nama'=>'approved '.Str::random(3)],
-                'geom'        => $randPoint(),
+                'status'      => $status,
+                'props'       => [
+                    'nama'      => "pelapor ".Str::random(3),
+                    'email'     => Str::random(5).'@mail.com',
+                    'telepon'   => '08'.rand(100000000,999999999),
+                    'tanggal'   => now()->toDateString(),
+                    'waktu'     => now()->format('H:i'),
+                    'kondisi'   => $cat==='dugong'
+                        ? collect(['hidup','mati','terluka'])->random()
+                        : collect(['hidup','mati'])->random(),
+                    'lokasi'    => "Lokasi ".Str::random(4),
+                    'deskripsi' => "Laporan $cat dummy",
+                    'gambar'    => "img_".Str::random(5).".jpg",
+                ],
+                'geom'        => $geom,
             ]);
         }
     }
