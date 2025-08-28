@@ -326,62 +326,124 @@ export default function MapView({
         const detach = attachLoading(map);
         map.on("load", () => setIsLoaded(true));
 
-        // popup
+        // ===== POPUP SATU-LAYER (PUTIH, RESPONSIF, FOKUS KONDISI) =====
+        // Tambah CSS global khusus popup class "gx-one" (sekali saja)
+        if (!document.getElementById("gx-one-popup-style")) {
+            const style = document.createElement("style");
+            style.id = "gx-one-popup-style";
+            style.textContent = `
+        .maplibregl-popup.gx-one .maplibregl-popup-content{
+          background:#ffffff;
+          color:#111827;
+          border:1px solid #E5E7EB;
+          border-radius:12px;
+          box-shadow:0 10px 24px rgba(0,0,0,.08);
+          padding:14px 16px;
+          min-width:220px;
+          max-width:320px;
+        }
+        .maplibregl-popup.gx-one .maplibregl-popup-close-button{
+          color:#6B7280;
+          font-size:18px;
+          right:6px; top:4px;
+        }
+        .maplibregl-popup.gx-one .maplibregl-popup-tip{
+          border-top-color:#ffffff;
+          border-bottom-color:#ffffff;
+        }
+        .gx-row{display:flex;justify-content:center;align-items:center}
+        .gx-badge{
+          display:inline-flex;align-items:center;gap:8px;
+          padding:10px 14px;border-radius:9999px;
+          font-size:13px;font-weight:800;line-height:1;
+          border:1px solid;
+        }
+        .gx-dot{width:8px;height:8px;border-radius:9999px;display:inline-block}
+        .gx-title{font-weight:700;font-size:13px;margin-bottom:8px;opacity:.9}
+      `;
+            document.head.appendChild(style);
+        }
+
         const popup = new maplibregl.Popup({
             closeButton: true,
             closeOnClick: true,
+            className: "gx-one", // ← satukan styling ke container popup bawaan
+            maxWidth: "320px",
         });
+
+        const safeJson = (raw) => {
+            if (!raw) return {};
+            if (typeof raw === "object") return raw;
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return {};
+            }
+        };
+        const getKondisi = (f) => {
+            const p = f.properties || {};
+            const props = safeJson(p.props);
+            return String(props.kondisi ?? p.kondisi ?? "n/a").toLowerCase();
+        };
+        const tone = (k) => {
+            if (k === "hidup")
+                return { bg: "#ECFDF5", fg: "#065F46", bd: "#10B981" };
+            if (k === "terluka")
+                return { bg: "#FFFBEB", fg: "#92400E", bd: "#F59E0B" };
+            if (k === "mati")
+                return { bg: "#FEF2F2", fg: "#7F1D1D", bd: "#EF4444" };
+            return { bg: "#F3F4F6", fg: "#374151", bd: "#D1D5DB" };
+        };
+        const icon = (k) => {
+            if (k === "hidup")
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+            if (k === "terluka")
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M12 3v4m0 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+            if (k === "mati")
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+            return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/></svg>`;
+        };
+
+        const htmlKondisiOnly = (title, kondisi) => {
+            const c = tone(kondisi);
+            return `
+        <div>
+          <div class="gx-title">${escapeHtml(title)}</div>
+          <div class="gx-row">
+            <span class="gx-badge" style="background:${c.bg};color:${
+                c.fg
+            };border-color:${c.bd}">
+              <span class="gx-dot" style="background:${c.bd}"></span>
+              ${icon(kondisi)}
+              <span style="text-transform:uppercase;letter-spacing:.6px">${escapeHtml(
+                  kondisi
+              )}</span>
+            </span>
+          </div>
+        </div>
+      `;
+        };
+
         const showPopup = (title) => (e) => {
             const f = e.features?.[0];
             if (!f) return;
-            const p = f.properties || {};
-            let propsPretty = "";
-            if (p.props) {
-                try {
-                    propsPretty = `<pre style="margin:0;white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(
-                        JSON.stringify(JSON.parse(p.props), null, 2)
-                    )}</pre>`;
-                } catch {
-                    propsPretty = `<pre style="margin:0;white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(
-                        String(p.props)
-                    )}</pre>`;
-                }
-            }
-            const html = `
-        <div style="font-size:12px;line-height:1.45">
-          <div style="font-weight:700;margin-bottom:6px">${escapeHtml(
-              title
-          )}</div>
-          ${
-              p.name
-                  ? `<div style="margin-bottom:2px"><strong>Nama:</strong> ${escapeHtml(
-                        p.name
-                    )}</div>`
-                  : ""
-          }
-          <div style="margin-bottom:2px"><strong>ID:</strong> ${escapeHtml(
-              String(p.id ?? f.id ?? "")
-          )}</div>
-          <div style="margin-bottom:2px"><strong>Koordinat (lon, lat):</strong> ${fmt(
-              e.lngLat.lng
-          )}, ${fmt(e.lngLat.lat)}</div>
-          ${
-              propsPretty
-                  ? `<div style="margin-top:6px"><strong>Detail Atribut</strong><br/>${propsPretty}</div>`
-                  : ""
-          }
-        </div>`;
+            const kondisi = getKondisi(f);
             map.getCanvas().style.cursor = "pointer";
-            popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
+            popup
+                .setLngLat(e.lngLat)
+                .setHTML(htmlKondisiOnly(title, kondisi))
+                .addTo(map);
         };
         const hideCursor = () => (map.getCanvas().style.cursor = "");
 
-        map.on("click", L.mgFill, showPopup("Mangrove (Kawasan)"));
-        map.on("click", L.mgPoint, showPopup("Mangrove (Titik)"));
-        map.on("click", L.lmFill, showPopup("Lamun (Kawasan)"));
-        map.on("click", L.lmPoint, showPopup("Lamun (Titik)"));
-        map.on("click", L.dgPoint, showPopup("Dugong (Titik)"));
+        // Binding click (judul rapi & konsisten)
+        map.on("click", L.mgFill, showPopup("Kawasan Area Mangrove "));
+        map.on("click", L.mgPoint, showPopup("Titik Temuan Mangrove "));
+        map.on("click", L.lmFill, showPopup("Kawasan Area Lamun "));
+        map.on("click", L.lmPoint, showPopup("Titik Temuan Lamun "));
+        map.on("click", L.dgPoint, showPopup("Titik Temuan Dugong"));
 
+        // Hover
         [L.mgFill, L.mgPoint, L.lmFill, L.lmPoint, L.dgPoint].forEach((id) => {
             map.on(
                 "mouseenter",

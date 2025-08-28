@@ -12,7 +12,7 @@ export default function Peta() {
     const [cond, setCond] = useState({
         mangrove: { hidup: false, mati: false },
         lamun: { hidup: false, mati: false },
-        dugong: { mati: false, terluka: false },
+        dugong: { hidup: false, mati: false, terluka: false },
     });
 
     const [geom, setGeom] = useState({
@@ -79,7 +79,7 @@ export default function Peta() {
                         onChange={toggleGeom(layer, "polygon")}
                         className="accent-gray-600"
                     />
-                    <span>Polygon (kawasan)</span>
+                    <span>Area Kawasan</span>
                 </label>
             )}
             <label className="inline-flex items-center gap-1 mr-2">
@@ -89,7 +89,7 @@ export default function Peta() {
                     onChange={toggleGeom(layer, "point")}
                     className="accent-gray-600"
                 />
-                <span>Point (titik)</span>
+                <span>Titik Temuan</span>
             </label>
         </div>
     );
@@ -235,7 +235,11 @@ export default function Peta() {
                                     <GeomRow layer="dugong" pointOnly />
                                     <CondRow
                                         layer="dugong"
-                                        options={{ mati: true, terluka: true }}
+                                        options={{
+                                            hidup: true,
+                                            mati: true,
+                                            terluka: true,
+                                        }}
                                     />
                                 </div>
                             </div>
