@@ -2,13 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-/**
- * Perubahan:
- * - Sumber dipisah per tipe: {jenis}_{poly|point} agar style berbeda.
- * - Dugong hanya point (tidak ada polygon).
- * - Warna & simbol dibedakan untuk point vs polygon per jenis.
- * - Loading indicator: kirim status ke parent via onLoadingChange.
- */
 export default function MapView({
     visibleMangrove = false,
     visibleLamun = false,
@@ -21,98 +14,131 @@ export default function MapView({
     const mapRef = useRef(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // helper: build query string dari cond & geom
-    const buildQuery = (layer, want) => {
-        // want: 'point' | 'polygon'
-        const c = cond?.[layer] || {};
-        const condList = Object.keys(c).filter((k) => c[k]);
+    // debounce agar banyak toggle dibatch
+    const useDebounced = (val, delay = 120) => {
+        const [v, setV] = useState(val);
+        useEffect(() => {
+            const t = setTimeout(() => setV(val), delay);
+            return () => clearTimeout(t);
+        }, [val, delay]);
+        return v;
+    };
+    const dVis = useDebounced(
+        { visibleMangrove, visibleLamun, visibleDugong },
+        120
+    );
+    const dCond = useDebounced(cond, 120);
+    const dGeom = useDebounced(geom, 120);
 
-        const params = new URLSearchParams();
-        // kirim cond hanya jika tidak semua tercentang (biar hemat cache)
-        if (condList.length && condList.length < Object.keys(c).length) {
-            params.set("cond", condList.join(","));
-        }
-        // kirim geom sesuai sumber
-        params.set("geom", want); // paksa sesuai sumber
-        const qs = params.toString();
-        return qs ? `?${qs}` : "";
+    const TILE_URL = (layer) =>
+        `http://127.0.0.1:8000/tiles/${layer}/{z}/{x}/{y}.mvt`;
+
+    const SRC = { base: "osm", mg: "src-mg", lm: "src-lm", dg: "src-dg" };
+    const L = {
+        mgFill: "ly-mg-fill",
+        mgLine: "ly-mg-line",
+        mgPoint: "ly-mg-point",
+        lmFill: "ly-lm-fill",
+        lmLine: "ly-lm-line",
+        lmPoint: "ly-lm-point",
+        dgPoint: "ly-dg-point",
     };
 
-    // ID sources & layers
-    const SRC = {
-        base: "osm",
-        // mangrove
-        mangrovePoly: "mangrove-poly",
-        mangrovePoint: "mangrove-point",
-        // lamun
-        lamunPoly: "lamun-poly",
-        lamunPoint: "lamun-point",
-        // dugong
-        dugongPoint: "dugong-point-src",
-    };
-
-    const LAYER = {
-        // mangrove poly
-        mangroveFill: "mangrove-fill",
-        mangroveLine: "mangrove-line",
-        // mangrove point
-        mangrovePoint: "mangrove-point",
-        // lamun poly
-        lamunFill: "lamun-fill",
-        lamunLine: "lamun-line",
-        // lamun point
-        lamunPoint: "lamun-point",
-        // dugong point
-        dugongPoint: "dugong-point",
-    };
-
-    const setVisibility = (id, visible) => {
-        const map = mapRef.current;
-        if (!map || !map.getLayer(id)) return;
-        map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
-    };
-
-    // util: pasang listener loading sederhana
-    const attachLoadingListeners = (map) => {
+    const attachLoading = (map) => {
         let pending = 0;
-        const setLoading = (val) => onLoadingChange(!!val);
-
-        const onDataLoading = () => {
+        const setL = (v) => onLoadingChange(!!v);
+        const inc = () => {
             pending++;
-            setLoading(true);
+            setL(true);
         };
-        const onData = () => {
+        const dec = () => {
             pending = Math.max(0, pending - 1);
-            if (pending === 0) setLoading(false);
+            if (pending === 0) setL(false);
         };
-        const onIdle = () => {
+        const idle = () => {
             pending = 0;
-            setLoading(false);
+            setL(false);
         };
-
-        map.on("dataloading", onDataLoading);
-        map.on("data", onData);
-        map.on("idle", onIdle);
-
+        map.on("dataloading", inc);
+        map.on("data", dec);
+        map.on("idle", idle);
         return () => {
-            map.off("dataloading", onDataLoading);
-            map.off("data", onData);
-            map.off("idle", onIdle);
+            map.off("dataloading", inc);
+            map.off("data", dec);
+            map.off("idle", idle);
         };
+    };
+
+    // filters & colors
+    const bothPoly = [
+        "any",
+        ["==", ["geometry-type"], "Polygon"],
+        ["==", ["geometry-type"], "MultiPolygon"],
+    ];
+    const bothPoint = [
+        "any",
+        ["==", ["geometry-type"], "Point"],
+        ["==", ["geometry-type"], "MultiPoint"],
+    ];
+    const makeCondFilter = (allowed) => {
+        if (!allowed || allowed.length === 0) return true; // no filter
+        return [
+            "in",
+            ["coalesce", ["get", "kondisi"], ""],
+            ["literal", allowed],
+        ];
+    };
+    const mgColor = (isPoint = false) => [
+        "match",
+        ["coalesce", ["get", "kondisi"], ""],
+        "hidup",
+        isPoint ? "#2ecc71" : "#27ae60",
+        "mati",
+        isPoint ? "#e74c3c" : "#c0392b",
+        /* default */ isPoint ? "#95a5a6" : "#7f8c8d",
+    ];
+    const lmColor = (isPoint = false) => [
+        "match",
+        ["coalesce", ["get", "kondisi"], ""],
+        "hidup",
+        isPoint ? "#3498db" : "#2980b9",
+        "mati",
+        isPoint ? "#e74c3c" : "#c0392b",
+        /* default */ isPoint ? "#95a5a6" : "#7f8c8d",
+    ];
+    const dgColor = () => [
+        "match",
+        ["coalesce", ["get", "kondisi"], ""],
+        "hidup",
+        "#2ecc71",
+        "terluka",
+        "#f39c12",
+        "mati",
+        "#e74c3c",
+        /* default */ "#95a5a6",
+    ];
+
+    const setVisible = (id, vis) => {
+        const m = mapRef.current;
+        if (!m || !m.getLayer(id)) return;
+        m.setLayoutProperty(id, "visibility", vis ? "visible" : "none");
+    };
+    const setFilter = (id, filterExprOrTrue) => {
+        const m = mapRef.current;
+        if (!m || !m.getLayer(id)) return;
+        if (filterExprOrTrue === true) {
+            m.setFilter(id, null);
+            return;
+        }
+        m.setFilter(id, filterExprOrTrue);
     };
 
     useEffect(() => {
         if (mapRef.current) return;
 
-        const qsMangrovePoly = buildQuery("mangrove", "polygon");
-        const qsMangrovePoint = buildQuery("mangrove", "point");
-        const qsLamunPoly = buildQuery("lamun", "polygon");
-        const qsLamunPoint = buildQuery("lamun", "point");
-        const qsDugongPoint = buildQuery("dugong", "point"); // dugong point-only
-
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            center: [104.6, 1.1], // Bintan
+            center: [104.6, 1.1],
             zoom: 9,
             style: {
                 version: 8,
@@ -126,75 +152,42 @@ export default function MapView({
                         attribution:
                             '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                     },
-
-                    // ===== Sumber per tipe (agar style bisa beda) =====
-                    // Mangrove POLYGON
-                    [SRC.mangrovePoly]: {
+                    [SRC.mg]: {
                         type: "vector",
-                        tiles: [
-                            `http://127.0.0.1:8000/tiles/mangrove/{z}/{x}/{y}.mvt${qsMangrovePoly}`,
-                        ],
+                        tiles: [TILE_URL("mangrove")],
                         minzoom: 0,
                         maxzoom: 20,
                     },
-                    // Mangrove POINT
-                    [SRC.mangrovePoint]: {
+                    [SRC.lm]: {
                         type: "vector",
-                        tiles: [
-                            `http://127.0.0.1:8000/tiles/mangrove/{z}/{x}/{y}.mvt${qsMangrovePoint}`,
-                        ],
+                        tiles: [TILE_URL("lamun")],
                         minzoom: 0,
                         maxzoom: 20,
                     },
-
-                    // Lamun POLYGON
-                    [SRC.lamunPoly]: {
+                    [SRC.dg]: {
                         type: "vector",
-                        tiles: [
-                            `http://127.0.0.1:8000/tiles/lamun/{z}/{x}/{y}.mvt${qsLamunPoly}`,
-                        ],
-                        minzoom: 0,
-                        maxzoom: 20,
-                    },
-                    // Lamun POINT
-                    [SRC.lamunPoint]: {
-                        type: "vector",
-                        tiles: [
-                            `http://127.0.0.1:8000/tiles/lamun/{z}/{x}/{y}.mvt${qsLamunPoint}`,
-                        ],
-                        minzoom: 0,
-                        maxzoom: 20,
-                    },
-
-                    // Dugong POINT
-                    [SRC.dugongPoint]: {
-                        type: "vector",
-                        tiles: [
-                            `http://127.0.0.1:8000/tiles/dugong/{z}/{x}/{y}.mvt${qsDugongPoint}`,
-                        ],
+                        tiles: [TILE_URL("dugong")],
                         minzoom: 0,
                         maxzoom: 20,
                     },
                 },
-
                 layers: [
-                    { id: "osm-raster", type: "raster", source: SRC.base },
+                    { id: "osm", type: "raster", source: SRC.base },
 
-                    // ========== Mangrove POLYGON ==========
                     {
-                        id: LAYER.mangroveFill,
+                        id: L.mgFill,
                         type: "fill",
-                        source: SRC.mangrovePoly,
+                        source: SRC.mg,
                         "source-layer": "mangrove",
                         paint: {
-                            "fill-color": "#27ae60", // hijau kawasan
+                            "fill-color": mgColor(false),
                             "fill-opacity": 0.35,
                         },
                     },
                     {
-                        id: LAYER.mangroveLine,
+                        id: L.mgLine,
                         type: "line",
-                        source: SRC.mangrovePoly,
+                        source: SRC.mg,
                         "source-layer": "mangrove",
                         paint: {
                             "line-color": "#1e8449",
@@ -212,14 +205,13 @@ export default function MapView({
                             ],
                         },
                     },
-                    // Mangrove POINT
                     {
-                        id: LAYER.mangrovePoint,
+                        id: L.mgPoint,
                         type: "circle",
-                        source: SRC.mangrovePoint,
+                        source: SRC.mg,
                         "source-layer": "mangrove",
                         paint: {
-                            "circle-color": "#2ecc71", // hijau terang titik
+                            "circle-color": mgColor(true),
                             "circle-radius": [
                                 "interpolate",
                                 ["linear"],
@@ -238,21 +230,20 @@ export default function MapView({
                         },
                     },
 
-                    // ========== Lamun POLYGON ==========
                     {
-                        id: LAYER.lamunFill,
+                        id: L.lmFill,
                         type: "fill",
-                        source: SRC.lamunPoly,
+                        source: SRC.lm,
                         "source-layer": "lamun",
                         paint: {
-                            "fill-color": "#2980b9", // biru kawasan
+                            "fill-color": lmColor(false),
                             "fill-opacity": 0.35,
                         },
                     },
                     {
-                        id: LAYER.lamunLine,
+                        id: L.lmLine,
                         type: "line",
-                        source: SRC.lamunPoly,
+                        source: SRC.lm,
                         "source-layer": "lamun",
                         paint: {
                             "line-color": "#1f5f85",
@@ -270,14 +261,13 @@ export default function MapView({
                             ],
                         },
                     },
-                    // Lamun POINT
                     {
-                        id: LAYER.lamunPoint,
+                        id: L.lmPoint,
                         type: "circle",
-                        source: SRC.lamunPoint,
+                        source: SRC.lm,
                         "source-layer": "lamun",
                         paint: {
-                            "circle-color": "#3498db", // biru terang titik
+                            "circle-color": lmColor(true),
                             "circle-radius": [
                                 "interpolate",
                                 ["linear"],
@@ -296,14 +286,13 @@ export default function MapView({
                         },
                     },
 
-                    // ========== Dugong POINT ==========
                     {
-                        id: LAYER.dugongPoint,
+                        id: L.dgPoint,
                         type: "circle",
-                        source: SRC.dugongPoint,
+                        source: SRC.dg,
                         "source-layer": "dugong",
                         paint: {
-                            "circle-color": "#f1c40f", // kuning titik
+                            "circle-color": dgColor(),
                             "circle-radius": [
                                 "interpolate",
                                 ["linear"],
@@ -334,7 +323,8 @@ export default function MapView({
             "bottom-left"
         );
 
-        const detachLoading = attachLoadingListeners(map);
+        const detach = attachLoading(map);
+        map.on("load", () => setIsLoaded(true));
 
         // popup
         const popup = new maplibregl.Popup({
@@ -345,13 +335,11 @@ export default function MapView({
             const f = e.features?.[0];
             if (!f) return;
             const p = f.properties || {};
-
             let propsPretty = "";
             if (p.props) {
                 try {
-                    const parsed = JSON.parse(p.props);
                     propsPretty = `<pre style="margin:0;white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(
-                        JSON.stringify(parsed, null, 2)
+                        JSON.stringify(JSON.parse(p.props), null, 2)
                     )}</pre>`;
                 } catch {
                     propsPretty = `<pre style="margin:0;white-space:pre-wrap;max-height:200px;overflow:auto">${escapeHtml(
@@ -359,8 +347,7 @@ export default function MapView({
                     )}</pre>`;
                 }
             }
-
-            const content = `
+            const html = `
         <div style="font-size:12px;line-height:1.45">
           <div style="font-weight:700;margin-bottom:6px">${escapeHtml(
               title
@@ -375,72 +362,27 @@ export default function MapView({
           <div style="margin-bottom:2px"><strong>ID:</strong> ${escapeHtml(
               String(p.id ?? f.id ?? "")
           )}</div>
-          <div style="margin-bottom:2px"><strong>Koordinat (lon, lat):</strong> ${fmtCoord(
+          <div style="margin-bottom:2px"><strong>Koordinat (lon, lat):</strong> ${fmt(
               e.lngLat.lng
-          )}, ${fmtCoord(e.lngLat.lat)}</div>
+          )}, ${fmt(e.lngLat.lat)}</div>
           ${
               propsPretty
                   ? `<div style="margin-top:6px"><strong>Detail Atribut</strong><br/>${propsPretty}</div>`
                   : ""
           }
-        </div>
-      `;
+        </div>`;
             map.getCanvas().style.cursor = "pointer";
-            popup.setLngLat(e.lngLat).setHTML(content).addTo(map);
+            popup.setLngLat(e.lngLat).setHTML(html).addTo(map);
         };
-
         const hideCursor = () => (map.getCanvas().style.cursor = "");
 
-        map.on("load", () => {
-            setIsLoaded(true);
+        map.on("click", L.mgFill, showPopup("Mangrove (Kawasan)"));
+        map.on("click", L.mgPoint, showPopup("Mangrove (Titik)"));
+        map.on("click", L.lmFill, showPopup("Lamun (Kawasan)"));
+        map.on("click", L.lmPoint, showPopup("Lamun (Titik)"));
+        map.on("click", L.dgPoint, showPopup("Dugong (Titik)"));
 
-            // set visibility awal sesuai props + pilihan tipe
-            setVisibility(
-                LAYER.mangroveFill,
-                visibleMangrove && !!geom?.mangrove?.polygon
-            );
-            setVisibility(
-                LAYER.mangroveLine,
-                visibleMangrove && !!geom?.mangrove?.polygon
-            );
-            setVisibility(
-                LAYER.mangrovePoint,
-                visibleMangrove && !!geom?.mangrove?.point
-            );
-
-            setVisibility(
-                LAYER.lamunFill,
-                visibleLamun && !!geom?.lamun?.polygon
-            );
-            setVisibility(
-                LAYER.lamunLine,
-                visibleLamun && !!geom?.lamun?.polygon
-            );
-            setVisibility(
-                LAYER.lamunPoint,
-                visibleLamun && !!geom?.lamun?.point
-            );
-
-            setVisibility(
-                LAYER.dugongPoint,
-                visibleDugong && !!geom?.dugong?.point
-            );
-        });
-
-        // klik & hover
-        map.on("click", LAYER.mangroveFill, showPopup("Mangrove (Kawasan)"));
-        map.on("click", LAYER.mangrovePoint, showPopup("Mangrove (Titik)"));
-        map.on("click", LAYER.lamunFill, showPopup("Lamun (Kawasan)"));
-        map.on("click", LAYER.lamunPoint, showPopup("Lamun (Titik)"));
-        map.on("click", LAYER.dugongPoint, showPopup("Dugong (Titik)"));
-
-        [
-            LAYER.mangroveFill,
-            LAYER.mangrovePoint,
-            LAYER.lamunFill,
-            LAYER.lamunPoint,
-            LAYER.dugongPoint,
-        ].forEach((id) => {
+        [L.mgFill, L.mgPoint, L.lmFill, L.lmPoint, L.dgPoint].forEach((id) => {
             map.on(
                 "mouseenter",
                 id,
@@ -450,53 +392,51 @@ export default function MapView({
         });
 
         mapRef.current = map;
-
         return () => {
             popup.remove();
-            detachLoading?.();
+            detach?.();
             map.remove();
             mapRef.current = null;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // sync visibility bila props berubah (tanpa rebuild style)
+    // apply visibility + filter saat state berubah (debounced)
     useEffect(() => {
         if (!isLoaded) return;
-        setVisibility(
-            LAYER.mangroveFill,
-            visibleMangrove && !!geom?.mangrove?.polygon
-        );
-        setVisibility(
-            LAYER.mangroveLine,
-            visibleMangrove && !!geom?.mangrove?.polygon
-        );
-        setVisibility(
-            LAYER.mangrovePoint,
-            visibleMangrove && !!geom?.mangrove?.point
-        );
-    }, [
-        visibleMangrove,
-        geom?.mangrove?.polygon,
-        geom?.mangrove?.point,
-        isLoaded,
-    ]);
+        const condList = (layer) =>
+            Object.entries(dCond?.[layer] || {})
+                .filter(([, v]) => v)
+                .map(([k]) => k);
 
-    useEffect(() => {
-        if (!isLoaded) return;
-        setVisibility(LAYER.lamunFill, visibleLamun && !!geom?.lamun?.polygon);
-        setVisibility(LAYER.lamunLine, visibleLamun && !!geom?.lamun?.polygon);
-        setVisibility(LAYER.lamunPoint, visibleLamun && !!geom?.lamun?.point);
-    }, [visibleLamun, geom?.lamun?.polygon, geom?.lamun?.point, isLoaded]);
-
-    useEffect(() => {
-        if (!isLoaded) return;
-        // dugong point-only
-        setVisibility(
-            LAYER.dugongPoint,
-            visibleDugong && !!geom?.dugong?.point
+        // Mangrove
+        setVisible(
+            L.mgFill,
+            dVis.visibleMangrove && !!dGeom?.mangrove?.polygon
         );
-    }, [visibleDugong, geom?.dugong?.point, isLoaded]);
+        setVisible(
+            L.mgLine,
+            dVis.visibleMangrove && !!dGeom?.mangrove?.polygon
+        );
+        setVisible(L.mgPoint, dVis.visibleMangrove && !!dGeom?.mangrove?.point);
+        const mgF = makeCondFilter(condList("mangrove"));
+        setFilter(L.mgFill, ["all", bothPoly, mgF]);
+        setFilter(L.mgLine, ["all", bothPoly, mgF]);
+        setFilter(L.mgPoint, ["all", bothPoint, mgF]);
+
+        // Lamun
+        setVisible(L.lmFill, dVis.visibleLamun && !!dGeom?.lamun?.polygon);
+        setVisible(L.lmLine, dVis.visibleLamun && !!dGeom?.lamun?.polygon);
+        setVisible(L.lmPoint, dVis.visibleLamun && !!dGeom?.lamun?.point);
+        const lmF = makeCondFilter(condList("lamun"));
+        setFilter(L.lmFill, ["all", bothPoly, lmF]);
+        setFilter(L.lmLine, ["all", bothPoly, lmF]);
+        setFilter(L.lmPoint, ["all", bothPoint, lmF]);
+
+        // Dugong (point only)
+        setVisible(L.dgPoint, dVis.visibleDugong && !!dGeom?.dugong?.point);
+        const dgF = makeCondFilter(condList("dugong"));
+        setFilter(L.dgPoint, ["all", bothPoint, dgF]);
+    }, [isLoaded, dVis, dCond, dGeom]);
 
     return (
         <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
@@ -511,9 +451,7 @@ function escapeHtml(str) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
-
-function fmtCoord(num) {
-    const n = Number(num);
-    if (!Number.isFinite(n)) return String(num);
-    return n.toFixed(5);
+function fmt(n) {
+    const x = Number(n);
+    return Number.isFinite(x) ? x.toFixed(5) : String(n);
 }

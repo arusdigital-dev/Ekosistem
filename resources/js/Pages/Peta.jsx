@@ -1,33 +1,27 @@
 import Navbar from "@/Components/Navbar";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import MapView from "@/UI/MapView";
 
 export default function Peta() {
-    // toggle layer (DEFAULT: semua OFF)
     const [layers, setLayers] = useState({
         mangrove: false,
         lamun: false,
         dugong: false,
     });
 
-    // filter kondisi per layer
     const [cond, setCond] = useState({
         mangrove: { hidup: false, mati: false },
         lamun: { hidup: false, mati: false },
-        dugong: { mati: false, terluka: false }, // dugong TIDAK punya 'hidup'
+        dugong: { mati: false, terluka: false },
     });
 
-    // filter geometri per layer
     const [geom, setGeom] = useState({
         mangrove: { point: false, polygon: false },
         lamun: { point: false, polygon: false },
-        dugong: { point: false, polygon: false }, // dugong point-only
+        dugong: { point: false, polygon: false }, // tetap, meski point-only
     });
 
-    // panel UI
     const [open, setOpen] = useState(true);
-
-    // loading state dari MapView (untuk spinner di kartu)
     const [loading, setLoading] = useState(false);
 
     const toggleLayer = (key) => (e) =>
@@ -57,12 +51,6 @@ export default function Peta() {
                 marginRight: 8,
             }}
         />
-    );
-
-    // remount key agar MapView rebuild sources saat filter berubah
-    const mapKey = useMemo(
-        () => JSON.stringify({ layers, cond, geom }),
-        [layers, cond, geom]
     );
 
     const CondRow = ({ layer, options }) => (
@@ -106,7 +94,6 @@ export default function Peta() {
         </div>
     );
 
-    // spinner kecil untuk header kartu
     const Spinner = () => (
         <span
             className="inline-block align-middle ml-2"
@@ -142,7 +129,6 @@ export default function Peta() {
             <Navbar />
             <div className="relative flex-1 w-full overflow-hidden">
                 <MapView
-                    key={mapKey}
                     visibleMangrove={layers.mangrove}
                     visibleLamun={layers.lamun}
                     visibleDugong={layers.dugong}

@@ -11,8 +11,7 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->nullable();
             $table->jsonb('props')->nullable();
-            $table->geometry('geom', null, 4326);
-            $table->timestamps();
+            $table->geometry('geom', null, 4326);            $table->timestamps();
         });
 
         Schema::connection('pgsql')->create('lamun', function (Blueprint $table) {
