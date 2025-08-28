@@ -24,6 +24,9 @@ export default function Peta() {
     const [open, setOpen] = useState(true);
     const [loading, setLoading] = useState(false);
 
+    // NEW: basemap picker
+    const [basemap, setBasemap] = useState("osm"); // "osm" | "light" | "dark" | "satellite" | "terrain"
+
     const toggleLayer = (key) => (e) =>
         setLayers((prev) => ({ ...prev, [key]: e.target.checked }));
 
@@ -135,6 +138,7 @@ export default function Peta() {
                     cond={cond}
                     geom={geom}
                     onLoadingChange={setLoading}
+                    basemap={basemap} // NEW
                 />
 
                 {/* Panel */}
@@ -180,6 +184,34 @@ export default function Peta() {
                             </div>
 
                             <div className="p-4 space-y-4 text-sm">
+                                {/* Jenis Peta */}
+                                <div className="mb-2">
+                                    <label className="block text-[12px] text-gray-600 mb-1">
+                                        Jenis Peta
+                                    </label>
+                                    <select
+                                        value={basemap}
+                                        onChange={(e) =>
+                                            setBasemap(e.target.value)
+                                        }
+                                        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="osm">OSM Standar</option>
+                                        <option value="light">
+                                            Carto Positron (Light)
+                                        </option>
+                                        <option value="dark">
+                                            Carto Dark Matter
+                                        </option>
+                                        <option value="satellite">
+                                            Esri Satellite
+                                        </option>
+                                        <option value="terrain">
+                                            OpenTopoMap (Terrain)
+                                        </option>
+                                    </select>
+                                </div>
+
                                 {/* Mangrove */}
                                 <div>
                                     <label className="flex items-center gap-2 cursor-pointer select-none">

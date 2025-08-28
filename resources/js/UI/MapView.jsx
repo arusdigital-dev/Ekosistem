@@ -9,6 +9,7 @@ export default function MapView({
     cond = {},
     geom = {},
     onLoadingChange = () => {},
+    basemap = "osm", // NEW
 }) {
     const mapContainerRef = useRef(null);
     const mapRef = useRef(null);
@@ -33,7 +34,24 @@ export default function MapView({
     const TILE_URL = (layer) =>
         `http://127.0.0.1:8000/tiles/${layer}/{z}/{x}/{y}.mvt`;
 
-    const SRC = { base: "osm", mg: "src-mg", lm: "src-lm", dg: "src-dg" };
+    // NEW: multiple basemap sources & layer ids
+    const SRC = {
+        baseOSM: "src-base-osm",
+        baseLight: "src-base-light",
+        baseDark: "src-base-dark",
+        baseSat: "src-base-sat",
+        baseTerrain: "src-base-terrain",
+        mg: "src-mg",
+        lm: "src-lm",
+        dg: "src-dg",
+    };
+    const BASE_LAYERS = {
+        osm: "ly-base-osm",
+        light: "ly-base-light",
+        dark: "ly-base-dark",
+        satellite: "ly-base-sat",
+        terrain: "ly-base-terrain",
+    };
     const L = {
         mgFill: "ly-mg-fill",
         mgLine: "ly-mg-line",
@@ -143,15 +161,49 @@ export default function MapView({
             style: {
                 version: 8,
                 sources: {
-                    [SRC.base]: {
+                    // BASemaps
+                    [SRC.baseOSM]: {
                         type: "raster",
                         tiles: [
                             "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                         ],
                         tileSize: 256,
-                        attribution:
-                            '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                        attribution: "© OpenStreetMap contributors",
                     },
+                    [SRC.baseLight]: {
+                        type: "raster",
+                        tiles: [
+                            "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                        ],
+                        tileSize: 256,
+                        attribution: "© OpenStreetMap contributors, © CARTO",
+                    },
+                    [SRC.baseDark]: {
+                        type: "raster",
+                        tiles: [
+                            "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+                        ],
+                        tileSize: 256,
+                        attribution: "© OpenStreetMap contributors, © CARTO",
+                    },
+                    [SRC.baseSat]: {
+                        type: "raster",
+                        tiles: [
+                            "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                        ],
+                        tileSize: 256,
+                        attribution:
+                            "Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+                    },
+                    [SRC.baseTerrain]: {
+                        type: "raster",
+                        tiles: ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
+                        tileSize: 256,
+                        attribution:
+                            "© OpenStreetMap contributors, SRTM | OpenTopoMap (CC-BY-SA)",
+                    },
+
+                    // Vector sources
                     [SRC.mg]: {
                         type: "vector",
                         tiles: [TILE_URL("mangrove")],
@@ -172,8 +224,39 @@ export default function MapView({
                     },
                 },
                 layers: [
-                    { id: "osm", type: "raster", source: SRC.base },
+                    // Semua basemap off dulu (nanti dihidupkan lewat effect)
+                    {
+                        id: BASE_LAYERS.osm,
+                        type: "raster",
+                        source: SRC.baseOSM,
+                        layout: { visibility: "none" },
+                    },
+                    {
+                        id: BASE_LAYERS.light,
+                        type: "raster",
+                        source: SRC.baseLight,
+                        layout: { visibility: "none" },
+                    },
+                    {
+                        id: BASE_LAYERS.dark,
+                        type: "raster",
+                        source: SRC.baseDark,
+                        layout: { visibility: "none" },
+                    },
+                    {
+                        id: BASE_LAYERS.satellite,
+                        type: "raster",
+                        source: SRC.baseSat,
+                        layout: { visibility: "none" },
+                    },
+                    {
+                        id: BASE_LAYERS.terrain,
+                        type: "raster",
+                        source: SRC.baseTerrain,
+                        layout: { visibility: "none" },
+                    },
 
+                    // Mangrove
                     {
                         id: L.mgFill,
                         type: "fill",
@@ -230,6 +313,7 @@ export default function MapView({
                         },
                     },
 
+                    // Lamun
                     {
                         id: L.lmFill,
                         type: "fill",
@@ -286,6 +370,7 @@ export default function MapView({
                         },
                     },
 
+                    // Dugong (point-only)
                     {
                         id: L.dgPoint,
                         type: "circle",
@@ -327,7 +412,6 @@ export default function MapView({
         map.on("load", () => setIsLoaded(true));
 
         // ===== POPUP SATU-LAYER (PUTIH, RESPONSIF, FOKUS KONDISI) =====
-        // Tambah CSS global khusus popup class "gx-one" (sekali saja)
         if (!document.getElementById("gx-one-popup-style")) {
             const style = document.createElement("style");
             style.id = "gx-one-popup-style";
@@ -367,7 +451,7 @@ export default function MapView({
         const popup = new maplibregl.Popup({
             closeButton: true,
             closeOnClick: true,
-            className: "gx-one", // ← satukan styling ke container popup bawaan
+            className: "gx-one",
             maxWidth: "320px",
         });
 
@@ -437,10 +521,10 @@ export default function MapView({
         const hideCursor = () => (map.getCanvas().style.cursor = "");
 
         // Binding click (judul rapi & konsisten)
-        map.on("click", L.mgFill, showPopup("Kawasan Area Mangrove "));
-        map.on("click", L.mgPoint, showPopup("Titik Temuan Mangrove "));
-        map.on("click", L.lmFill, showPopup("Kawasan Area Lamun "));
-        map.on("click", L.lmPoint, showPopup("Titik Temuan Lamun "));
+        map.on("click", L.mgFill, showPopup("Kawasan Area Mangrove"));
+        map.on("click", L.mgPoint, showPopup("Titik Temuan Mangrove"));
+        map.on("click", L.lmFill, showPopup("Kawasan Area Lamun"));
+        map.on("click", L.lmPoint, showPopup("Titik Temuan Lamun"));
         map.on("click", L.dgPoint, showPopup("Titik Temuan Dugong"));
 
         // Hover
@@ -461,6 +545,21 @@ export default function MapView({
             mapRef.current = null;
         };
     }, []);
+
+    // NEW: toggle basemap saat pilihan berubah
+    useEffect(() => {
+        if (!isLoaded) return;
+        const m = mapRef.current;
+        if (!m) return;
+        Object.entries(BASE_LAYERS).forEach(([key, layerId]) => {
+            if (!m.getLayer(layerId)) return;
+            m.setLayoutProperty(
+                layerId,
+                "visibility",
+                key === basemap ? "visible" : "none"
+            );
+        });
+    }, [isLoaded, basemap]);
 
     // apply visibility + filter saat state berubah (debounced)
     useEffect(() => {
