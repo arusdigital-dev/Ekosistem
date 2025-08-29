@@ -1,51 +1,35 @@
 import React, { useState } from 'react';
+import { carouselData, carouselConfig } from './data/carouselData.js';
+import ChevronLeftIcon from './components/ChevronLeftIcon.jsx';
+import ChevronRightIcon from './components/ChevronRightIcon.jsx';
 
 const Carousel = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [slideDirection, setSlideDirection] = useState('');
 
-    const slides = [
-        {
-            id: 1,
-            image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80",
-            title: "Lorem ipsum dolor sit amet consectetur",
-            description: "Penelitian terbaru mengenai ekosistem laut"
-        },
-        {
-            id: 2,
-            image: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80",
-            title: "Lorem ipsum dolor sit amet consectetur",
-            description: "Konservasi terumbu karang di pesisir Indonesia"
-        },
-        {
-            id: 3,
-            image: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80",
-            title: "Lorem ipsum dolor sit amet consectetur",
-            description: "Program restorasi mangrove berkelanjutan"
-        }
-    ];
+    const { slides } = carouselData;
 
-    const nextSlide = () => {
+    const handleNextSlide = () => {
         if (isTransitioning) return;
         setIsTransitioning(true);
         setSlideDirection('next');
         setTimeout(() => {
             setCurrentSlide((prev) => (prev + 1) % slides.length);
             setSlideDirection('');
-        }, 350);
-        setTimeout(() => setIsTransitioning(false), 700);
+        }, carouselConfig.slideDelay);
+        setTimeout(() => setIsTransitioning(false), carouselConfig.transitionDuration);
     };
 
-    const prevSlide = () => {
+    const handlePrevSlide = () => {
         if (isTransitioning) return;
         setIsTransitioning(true);
         setSlideDirection('prev');
         setTimeout(() => {
             setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
             setSlideDirection('');
-        }, 350);
-        setTimeout(() => setIsTransitioning(false), 700);
+        }, carouselConfig.slideDelay);
+        setTimeout(() => setIsTransitioning(false), carouselConfig.transitionDuration);
     };
 
     return (
@@ -55,9 +39,11 @@ const Carousel = () => {
                 <div className="relative bg-gray-100 rounded-3xl p-8">
                     {/* Header */}
                     <div className="text-center mb-12">
-                        <p className="text-[#6D8FD4] font-bold mb-2">Update Terbaru dari Lapangan</p>
-                        <h2 className="text-3xl lg:text-4xl font-bold text-[#274B9C] mb-8">
-                            Berita dan cerita dari pesisir
+                        <p className="font-bold mb-2" style={{ color: carouselConfig.subtitleColor }}>
+                            {carouselData.header.subtitle}
+                        </p>
+                        <h2 className="text-3xl lg:text-4xl font-bold mb-8" style={{ color: carouselConfig.primaryColor }}>
+                            {carouselData.header.title}
                         </h2>
                     </div>
 
@@ -142,21 +128,17 @@ const Carousel = () => {
                         {/* Navigation Buttons - Below the images */}
                         <div className="flex justify-center mt-8 space-x-4">
                         <button
-                            onClick={prevSlide}
+                            onClick={handlePrevSlide}
                             className="bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-3 shadow-lg transition-all duration-200"
                         >
-                            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
+                            <ChevronLeftIcon color="#374151" />
                         </button>
 
                         <button
-                            onClick={nextSlide}
+                            onClick={handleNextSlide}
                             className="bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-3 shadow-lg transition-all duration-200"
                         >
-                            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                            <ChevronRightIcon color="#374151" />
                         </button>
                         </div>
                     </div>

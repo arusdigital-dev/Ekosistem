@@ -1,4 +1,6 @@
 import React from 'react'
+import { aboutUsData, aboutUsConfig } from './data/aboutUsData.js'
+import ArrowIcon from './components/ArrowIcon.jsx'
 import Infographic from '../images/infographic.png'
 
 const AboutUs = () => {
@@ -10,32 +12,36 @@ const AboutUs = () => {
                     <div className="w-full">
                         <img
                             src={Infographic}
-                            alt="About Us"
-                            className="w-full h-auto"
+                            alt={aboutUsData.image.alt}
+                            className={`w-full h-auto ${aboutUsConfig.borderRadius}`}
                         />
                     </div>
 
                     {/* Right Side - Content */}
                     <div className="space-y-6">
                         <div>
-                            <p className="text-[#6D8FD4] font-bold mb-2">Tentang Kita</p>
-                            <h2 className="text-3xl lg:text-4xl font-bold text-[#274B9C] mb-4">
-                                Lorem ipsum dolor sit amet consectetur. In porta nec est et diam.
+                            <p className="font-bold mb-2" style={{ color: aboutUsConfig.subtitleColor }}>
+                                {aboutUsData.header.subtitle}
+                            </p>
+                            <h2 className="text-3xl lg:text-4xl font-bold mb-4" style={{ color: aboutUsConfig.primaryColor }}>
+                                {aboutUsData.header.title}
                             </h2>
                         </div>
 
-                        <p className="text-gray-600 leading-relaxed font-medium">
-                            Lorem ipsum dolor sit amet consectetur. In porta nec<br />
-                            est et diam.Cursus risus molestie auctor id varius cras. <br />
-                            Viverra eget mauris bibendum sit nibh et   magna risus lectus <br />
-                            mattis. Nibh mi tellus sed ut.
+                        <p className="leading-relaxed font-medium" style={{ color: aboutUsConfig.textColor }}>
+                            {aboutUsData.content.description}
                         </p>
 
-                        <button className="bg-[#274B9C] text-white px-6 py-3 rounded-full font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center gap-2">
-                            Selengkapnya
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                        <button 
+                            className="text-white px-6 py-3 rounded-full font-semibold transition-colors duration-300 flex items-center gap-2"
+                            style={{ 
+                                backgroundColor: aboutUsConfig.buttonColor,
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = aboutUsConfig.buttonHoverColor}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = aboutUsConfig.buttonColor}
+                        >
+                            {aboutUsData.content.buttonText}
+                            <ArrowIcon />
                         </button>
                     </div>
                 </div>

@@ -30,12 +30,31 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
     if (currentPage === 'Berita') {
       return 'Berita'
     }
+    if (currentPage === 'Kegiatan Penelitian') {
+      return 'Kegiatan Penelitian'
+    }
+    if (currentPage === 'Artikel') {
+      return 'Artikel'
+    }
     return 'Publikasi'
+  }
+
+  const getTentangText = () => {
+    if (currentPage === 'Peneliti') {
+      return 'Peneliti'
+    }
+    if (currentPage === 'Kontak') {
+      return 'Kontak'
+    }
+    return 'Tentang'
   }
 
   // Determine which dropdown should be highlighted
   const getActiveDropdown = () => {
-    if (currentPage === 'Berita') {
+    if (currentPage === 'Peneliti' || currentPage === 'Kontak') {
+      return 'tentang'
+    }
+    if (currentPage === 'Berita' || currentPage === 'Kegiatan Penelitian' || currentPage === 'Artikel') {
       return 'publikasi'
     }
     if (currentPage === 'Mangrove' || currentPage === 'Padang Lamun') {
@@ -58,7 +77,7 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
           <img
             src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAyNCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjE4IiBmaWxsPSIjRkYwMDAwIi8+CjxyZWN0IHk9IjkiIHdpZHRoPSIyNCIgaGVpZ2h0PSI5IiBmaWxsPSIjRkZGRkZGIi8+Cjwvc3ZnPgo="
             alt="ID"
-            className="w-6 h-4"
+            className="w-6 h-4 rounded"
           />
           <span className="text-sm font-bold" style={{ color: '#274B9C' }}>Id</span>
           <svg className="w-4 h-4" style={{ color: '#274B9C' }} fill="currentColor" viewBox="0 0 20 20">
@@ -162,7 +181,7 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
                   <p className="text-xs text-gray-500 mb-3">Lorem ipsum dolor sit amet consectetur. In porta nec est et diam. Cursus risus molestie ut varius orci mauris eget est tellus.</p>
                   <div className="flex items-center text-[#274B9C] text-xs">
                     <img src={PenelitianTerdahulu} alt="Penelitian Terdahulu" className="w-3 h-3 mr-1" />
-                    <span className="font-medium">Kegiatan Penelitian</span>
+                    <a href="/Kegiatan-Penelitian" className="font-medium">Kegiatan Penelitian</a>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">Lorem Ipsum Dolor Amet</p>
                 </div>
@@ -174,7 +193,7 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
                   <p className="text-xs text-gray-500 mb-3">Lorem ipsum dolor sit amet consectetur. In porta nec est et diam. Cursus risus molestie ut varius orci mauris eget est tellus.</p>
                   <div className="flex items-center text-[#274B9C] text-xs">
                     <img src={Artikel} alt="Artikel" className="w-3 h-3 mr-1" />
-                    <span className="font-medium">Artikel</span>
+                    <a href="/Artikel" className="font-medium">Artikel</a>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">Lorem Ipsum Dolor Amet</p>
                 </div>
@@ -204,7 +223,7 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
               setIsPublikasiOpen(false)
             }}
           >
-            <span className="font-bold" style={{ color: isTentangOpen ? '#6D7280' : '#274B9C' }}>Tentang</span>
+            <span className="font-bold" style={{ color: (isTentangOpen || getActiveDropdown() === 'tentang') ? '#6D7280' : '#274B9C' }}>{getTentangText()}</span>
             <svg className={`w-4 h-4 transition-transform ${isTentangOpen ? 'rotate-180' : ''}`} style={{ color: isTentangOpen ? '#6D7280' : '#274B9C' }} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -212,7 +231,7 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
 
           {isTentangOpen && (
             <div className="absolute top-full -right-16 mt-10 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              <a href="#" className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors">
+              <a href="/Peneliti" className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 flex items-center justify-center mr-3 mb-4">
                   <img src={Peneliti} alt="Peneliti" className="w-5 h-4" />
                 </div>
@@ -222,7 +241,7 @@ const Navbar = ({ currentPage = 'Ekosistem' }) => {
                 </div>
               </a>
 
-              <a href="#" className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors">
+              <a href="/Kontak" className="flex items-center px-4 py-3 hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 flex items-center justify-center mr-3 mb-4">
                   <img src={Kontak} alt="Kontak" className="w-5 h-4" />
                 </div>

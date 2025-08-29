@@ -1,69 +1,69 @@
 import React from 'react';
+import { mitraData, mitraConfig } from './data/mitraData.js';
+import ArrowIcon from './components/ArrowIcon.jsx';
 
 const Mitra = () => {
     return (
         <div className="min-h-screen bg-white pb-12 mt-24">
             {/* Header Section */}
             <div className="text-center py-12">
-                <h1 className="text-3xl md:text-4xl font-bold text-[#274B9C] mb-12">
-                    Mitra kami
+                <h1 className="text-3xl md:text-4xl font-bold mb-12" style={{ color: mitraConfig.primaryColor }}>
+                    {mitraData.header.title}
                 </h1>
 
                 {/* Partner Logos */}
                 <div className="py-8">
-                    <hr className="max-w-6xl w-full border-gray-400 mb-8 mx-auto" />
+                    <hr className={`${mitraConfig.containerMaxWidth} w-full border-gray-400 mb-8 mx-auto`} />
                     <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 px-4 mb-8">
-                        <div className="text-gray-400 text-2xl md:text-3xl font-bold opacity-60">
-                            Nike
-                        </div>
-                        <div className="text-gray-400 text-2xl md:text-3xl font-bold opacity-60">
-                            HUSH
-                        </div>
-                        <div className="text-gray-400 text-2xl md:text-3xl font-bold opacity-60">
-                            PUMA
-                        </div>
-                        <div className="text-gray-400 text-2xl md:text-3xl font-bold opacity-60 border border-gray-300 px-3 py-1 rounded">
-                            SHOEI
-                        </div>
-                        <div className="text-gray-400 text-2xl md:text-3xl font-bold opacity-60">
-                            Marc
-                        </div>
-                        <div className="text-gray-400 text-2xl md:text-3xl font-bold opacity-60 italic">
-                            Supreme
-                        </div>
+                        {mitraData.partners.map((partner) => (
+                            <div key={partner.id} className={mitraConfig.partnerStyles[partner.style]}>
+                                {partner.name}
+                            </div>
+                        ))}
                     </div>
-                    <hr className="max-w-6xl w-full border-gray-400 mb-8 mx-auto" />
+                    <hr className={`${mitraConfig.containerMaxWidth} w-full border-gray-400 mb-8 mx-auto`} />
                 </div>
             </div>
 
             {/* Hero Section */}
-            <div className="max-w-6xl mx-auto px-4">
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            <div className={`${mitraConfig.containerMaxWidth} mx-auto px-4`}>
+                <div className={`relative overflow-hidden ${mitraConfig.borderRadius} ${mitraConfig.shadowClass}`}>
                     {/* Background Image */}
-                    <div className="relative h-80 md:h-96">
+                    <div className={`relative ${mitraConfig.heroHeight}`}>
                         <img
-                            src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80"
-                            alt="Underwater marine life"
+                            src={mitraData.hero.image.src}
+                            alt={mitraData.hero.image.alt}
                             className="w-full h-full object-cover"
                         />
 
                         {/* Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent"></div>
+                        <div className={`absolute inset-0 ${mitraConfig.overlayGradient}`}></div>
 
                         {/* Content */}
                         <div className="absolute inset-0 flex items-center">
                             <div className="max-w-2xl px-8 md:px-12">
                                 <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 leading-tight">
-                                    Lorem ipsum dolor sit amet consectetur. In porta nec est et diam.
+                                    {mitraData.hero.title}
                                 </h2>
                                 <p className="text-base md:text-lg text-gray-200 mb-6 leading-relaxed">
-                                    Lorem ipsum dolor sit amet consectetur. In porta nec est et diam.<br />
-                                    Cursus risus malesuada id varius orci morbi eget est tellus.<br />
-                                    Sit senectus massa risus lectus.
+                                    {mitraData.hero.description.split('\n').map((line, index) => (
+                                        <React.Fragment key={index}>
+                                            {line}
+                                            {index < mitraData.hero.description.split('\n').length - 1 && <br />}
+                                        </React.Fragment>
+                                    ))}
                                 </p>
-                                <button className="bg-white text-blue-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition-colors duration-300">
-                                    Lapor
-                                    <span className="ml-2">→</span>
+                                <button 
+                                    className="px-6 py-2 rounded-full font-semibold transition-colors duration-300 flex items-center gap-2"
+                                    style={{ 
+                                        backgroundColor: mitraConfig.buttonColor,
+                                        color: mitraConfig.buttonTextColor
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = mitraConfig.buttonHoverColor}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = mitraConfig.buttonColor}
+                                >
+                                    {mitraData.hero.button.text}
+                                    <ArrowIcon color={mitraConfig.buttonTextColor} />
                                 </button>
                             </div>
                         </div>

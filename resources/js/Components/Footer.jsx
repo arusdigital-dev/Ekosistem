@@ -146,7 +146,7 @@ const Footer = () => {
                     </div>
 
                     {/* Bottom Footer */}
-                    <div className="border-t border-gray-300 pt-6">
+                    <div className="pt-6">
                         <div className="text-sm flex flex-wrap items-center gap-x-6 gap-y-2" style={{ color: '#274B9C' }}>
                             <span>© 2025 Ekosistem Pesisir. All rights reserved.</span>
                             <a href="#" className="hover:opacity-80 transition-colors">Privacy Statement</a>

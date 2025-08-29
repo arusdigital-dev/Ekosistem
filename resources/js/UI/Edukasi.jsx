@@ -1,58 +1,31 @@
 import { useEffect } from "react";
-import Wave1 from "../images/Wave1.png";
-import Wave2 from "../images/Wave2.png";
-import Wave3 from "../images/Wave3.png";
-
-const cards = [
-  {
-    id: 1,
-    image:
-      "https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-    wave: Wave2,
-    title: "Lorem Ipsum Dolor Sit Amet Consectetur Adipiscing",
-    desc: "Lorem ipsum dolor sit amet consectetur. In porta nec est et diam.",
-  },
-  {
-    id: 2,
-    image:
-      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-    wave: Wave1,
-    title: "Sed Do Eiusmod Tempor Incididunt Ut Labore Et Dolore",
-    desc: "Cursus risus malesuada id verius orci morbi eget est tellus.",
-  },
-  {
-    id: 3,
-    image:
-      "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-    wave: Wave3,
-    title: "Magna Aliqua Ut Enim Ad Minim Veniam Quis Nostrud",
-    desc: "Sit senectus massa risus lectus et viverra faucibus.",
-  },
-];
+import { edukasiData, edukasiConfig } from './data/edukasiData.js';
+import ArrowIcon from './components/ArrowIcon.jsx';
 
 const Edukasi = () => {
   return (
     <div className="w-full bg-white mt-20">
       {/* Header */}
       <div className="text-center -mt-2">
-        <p className="text-blue-500 text-sm font-bold mb-2">
-          Edukasi & Konservasi Laut
+        <p className="text-sm font-bold mb-2" style={{ color: edukasiConfig.subtitleColor }}>
+          {edukasiData.header.subtitle}
         </p>
-        <h1 className="text-3xl md:text-4xl font-bold text-blue-900">
-          Eksplorasi tiga penjaga laut kita
+        <h1 className="text-3xl md:text-4xl font-bold" style={{ color: edukasiConfig.primaryColor }}>
+          {edukasiData.header.title}
         </h1>
       </div>
 
       {/* Cards Container with Sticky Scroll Effect */}
       <div
         id="cards"
-        className="list-none grid grid-cols-1 gap-[14vw] mb-[2vw] p-20"
+        className="list-none grid grid-cols-1 mb-[2vw] p-20"
         style={{
-          gridTemplateRows: 'repeat(3, 25vw)',
-          paddingBottom: 'calc(3 * 0.5em)'
+          gap: edukasiConfig.animation.gridGap,
+          gridTemplateRows: edukasiConfig.animation.gridRows,
+          paddingBottom: edukasiConfig.animation.paddingBottom
         }}
       >
-        {cards.map((card, index) => (
+        {edukasiData.cards.map((card, index) => (
           <div
             key={card.id}
             id={`card-${card.id}`}
@@ -62,7 +35,7 @@ const Edukasi = () => {
               paddingTop: `calc(${index + 1} * 1em)`
             }}
           >
-            <div className="card-content relative w-full h-[400px] rounded-3xl overflow-hidden shadow-2xl p-20">
+            <div className={`card-content relative w-full overflow-hidden p-20 ${edukasiConfig.borderRadius} ${edukasiConfig.shadowClass}`} style={{ height: edukasiConfig.cardHeight }}>
               {/* background image */}
               <img
                 src={card.image}
@@ -71,7 +44,7 @@ const Edukasi = () => {
               />
 
               {/* gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
+              <div className={`absolute inset-0 ${edukasiConfig.gradientOverlay}`} />
 
               {/* content */}
               <div className="absolute inset-0 flex items-center ml-10 md:ml-24">
@@ -82,21 +55,15 @@ const Edukasi = () => {
                   <p className="text-sm md:text-base text-gray-200 mb-6 leading-relaxed">
                     {card.desc}
                   </p>
-                  <button className="bg-white text-[#274B9C] px-8 py-3 rounded-full font-semibold transition-colors duration-300 flex items-center gap-2">
-                    Selengkapnya
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
+                  <button 
+                    className="px-8 py-3 rounded-full font-semibold transition-colors duration-300 flex items-center gap-2"
+                    style={{ 
+                      backgroundColor: edukasiConfig.buttonColor,
+                      color: edukasiConfig.buttonTextColor
+                    }}
+                  >
+                    {card.buttonText}
+                    <ArrowIcon color={edukasiConfig.buttonTextColor} />
                   </button>
                 </div>
               </div>

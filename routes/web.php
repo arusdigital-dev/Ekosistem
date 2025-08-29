@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -25,4 +23,20 @@ Route::get('/berita/{id}', function ($id) {
     return Inertia::render('BeritaDetail', [
         'beritaId' => $id
     ]);
+});
+
+Route::get('/Kegiatan-Penelitian', function () {
+    return Inertia::render('KegiatanPenelitian');
+});
+
+Route::get('/Artikel', function () {
+    return Inertia::render('Artikel');
+});
+
+Route::get('/Peneliti', function () {
+    return Inertia::render('Peneliti');
+});
+
+Route::get('/Kontak', function () {
+    return Inertia::render('Kontak');
 });
