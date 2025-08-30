@@ -21,4 +21,4 @@ Route::post('/laporan', [LaporanController::class, 'store']);
 Route::post('/laporan/{id}/verify', [LaporanController::class, 'verify']);
 
 Route::get('/tiles/{layer}/{z}/{x}/{y}.mvt', [TileController::class, 'mvt']);
-Route::get('/tiles-debug/{layer}/{z}/{x}/{y}', [TileController::class, 'debug'])->name('tiles.debug');
+Route::get('/tiles/debug/{layer}/{z}/{x}/{y}', [TileController::class, 'debug']);

@@ -9,13 +9,13 @@ export default function MapView({
     cond = {},
     geom = {},
     onLoadingChange = () => {},
-    basemap = "osm", // NEW
 }) {
     const mapContainerRef = useRef(null);
     const mapRef = useRef(null);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [legendOpen, setLegendOpen] = useState(false);
 
-    // debounce agar banyak toggle dibatch
+    // debounce kecil
     const useDebounced = (val, delay = 120) => {
         const [v, setV] = useState(val);
         useEffect(() => {
@@ -34,25 +34,15 @@ export default function MapView({
     const TILE_URL = (layer) =>
         `http://127.0.0.1:8000/tiles/${layer}/{z}/{x}/{y}.mvt`;
 
-    // NEW: multiple basemap sources & layer ids
+    // Sumber & layer id
     const SRC = {
         baseOSM: "src-base-osm",
-        baseLight: "src-base-light",
-        baseDark: "src-base-dark",
-        baseSat: "src-base-sat",
-        baseTerrain: "src-base-terrain",
         mg: "src-mg",
         lm: "src-lm",
         dg: "src-dg",
     };
-    const BASE_LAYERS = {
-        osm: "ly-base-osm",
-        light: "ly-base-light",
-        dark: "ly-base-dark",
-        satellite: "ly-base-sat",
-        terrain: "ly-base-terrain",
-    };
     const L = {
+        baseOSM: "ly-base-osm",
         mgFill: "ly-mg-fill",
         mgLine: "ly-mg-line",
         mgPoint: "ly-mg-point",
@@ -87,7 +77,7 @@ export default function MapView({
         };
     };
 
-    // filters & colors
+    // ekspresi maplibre
     const bothPoly = [
         "any",
         ["==", ["geometry-type"], "Polygon"],
@@ -98,42 +88,55 @@ export default function MapView({
         ["==", ["geometry-type"], "Point"],
         ["==", ["geometry-type"], "MultiPoint"],
     ];
-    const makeCondFilter = (allowed) => {
-        if (!allowed || allowed.length === 0) return true; // no filter
+
+    // Filter dugong berdasarkan 'kondisi' (top-level, disuplai backend)
+    const makeCondFilterDugong = (allowed) => {
+        if (!allowed || allowed.length === 0) return true;
         return [
             "in",
             ["coalesce", ["get", "kondisi"], ""],
             ["literal", allowed],
         ];
     };
-    const mgColor = (isPoint = false) => [
-        "match",
-        ["coalesce", ["get", "kondisi"], ""],
-        "hidup",
-        isPoint ? "#2ecc71" : "#27ae60",
-        "mati",
-        isPoint ? "#e74c3c" : "#c0392b",
-        /* default */ isPoint ? "#95a5a6" : "#7f8c8d",
-    ];
+
+    // Filter lamun berdasarkan 'kriteria' (snake_case, disuplai backend)
+    const makeKriteriaFilterLamun = (allowedKeys) => {
+        if (!allowedKeys || allowedKeys.length === 0) return true;
+        return [
+            "in",
+            ["coalesce", ["get", "kriteria"], ""],
+            ["literal", allowedKeys],
+        ];
+    };
+
+    // warna
+    const mgColor = (isPoint = false) => 
+        isPoint ? "#27ae60" : "#2ecc71"; // Mangrove tetap hijau
+    
     const lmColor = (isPoint = false) => [
         "match",
-        ["coalesce", ["get", "kondisi"], ""],
-        "hidup",
-        isPoint ? "#3498db" : "#2980b9",
-        "mati",
-        isPoint ? "#e74c3c" : "#c0392b",
-        /* default */ isPoint ? "#95a5a6" : "#7f8c8d",
+        ["coalesce", ["get", "kriteria"], ""],
+        "sangat_padat",
+        isPoint ? "#1e3a8a" : "#1e40af", // Biru sangat tua
+        "padat", 
+        isPoint ? "#1e40af" : "#3b82f6", // Biru tua
+        "sedang",
+        isPoint ? "#3b82f6" : "#60a5fa", // Biru sedang
+        "jarang",
+        isPoint ? "#60a5fa" : "#93c5fd", // Biru muda
+        /* default */ isPoint ? "#94a3b8" : "#cbd5e1",
     ];
+    
     const dgColor = () => [
         "match",
         ["coalesce", ["get", "kondisi"], ""],
         "hidup",
-        "#2ecc71",
-        "terluka",
-        "#f39c12",
+        "#8b5cf6", // Ungu
+        "terluka", 
+        "#eab308", // Kuning
         "mati",
-        "#e74c3c",
-        /* default */ "#95a5a6",
+        "#ef4444", // Merah
+        /* default */ "#94a3b8",
     ];
 
     const setVisible = (id, vis) => {
@@ -161,7 +164,7 @@ export default function MapView({
             style: {
                 version: 8,
                 sources: {
-                    // BASemaps
+                    // OSM only
                     [SRC.baseOSM]: {
                         type: "raster",
                         tiles: [
@@ -170,40 +173,7 @@ export default function MapView({
                         tileSize: 256,
                         attribution: "© OpenStreetMap contributors",
                     },
-                    [SRC.baseLight]: {
-                        type: "raster",
-                        tiles: [
-                            "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-                        ],
-                        tileSize: 256,
-                        attribution: "© OpenStreetMap contributors, © CARTO",
-                    },
-                    [SRC.baseDark]: {
-                        type: "raster",
-                        tiles: [
-                            "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-                        ],
-                        tileSize: 256,
-                        attribution: "© OpenStreetMap contributors, © CARTO",
-                    },
-                    [SRC.baseSat]: {
-                        type: "raster",
-                        tiles: [
-                            "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                        ],
-                        tileSize: 256,
-                        attribution:
-                            "Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
-                    },
-                    [SRC.baseTerrain]: {
-                        type: "raster",
-                        tiles: ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
-                        tileSize: 256,
-                        attribution:
-                            "© OpenStreetMap contributors, SRTM | OpenTopoMap (CC-BY-SA)",
-                    },
-
-                    // Vector sources
+                    // Vector MVT
                     [SRC.mg]: {
                         type: "vector",
                         tiles: [TILE_URL("mangrove")],
@@ -224,36 +194,12 @@ export default function MapView({
                     },
                 },
                 layers: [
-                    // Semua basemap off dulu (nanti dihidupkan lewat effect)
+                    // Basemap OSM ON
                     {
-                        id: BASE_LAYERS.osm,
+                        id: L.baseOSM,
                         type: "raster",
                         source: SRC.baseOSM,
-                        layout: { visibility: "none" },
-                    },
-                    {
-                        id: BASE_LAYERS.light,
-                        type: "raster",
-                        source: SRC.baseLight,
-                        layout: { visibility: "none" },
-                    },
-                    {
-                        id: BASE_LAYERS.dark,
-                        type: "raster",
-                        source: SRC.baseDark,
-                        layout: { visibility: "none" },
-                    },
-                    {
-                        id: BASE_LAYERS.satellite,
-                        type: "raster",
-                        source: SRC.baseSat,
-                        layout: { visibility: "none" },
-                    },
-                    {
-                        id: BASE_LAYERS.terrain,
-                        type: "raster",
-                        source: SRC.baseTerrain,
-                        layout: { visibility: "none" },
+                        layout: { visibility: "visible" },
                     },
 
                     // Mangrove
@@ -273,7 +219,7 @@ export default function MapView({
                         source: SRC.mg,
                         "source-layer": "mangrove",
                         paint: {
-                            "line-color": "#1e8449",
+                            "line-color": "#27ae60",
                             "line-opacity": 0.95,
                             "line-width": [
                                 "interpolate",
@@ -308,7 +254,7 @@ export default function MapView({
                             ],
                             "circle-opacity": 0.95,
                             "circle-stroke-width": 1,
-                            "circle-stroke-color": "#145a32",
+                            "circle-stroke-color": "#1e4620",
                             "circle-stroke-opacity": 0.9,
                         },
                     },
@@ -330,7 +276,7 @@ export default function MapView({
                         source: SRC.lm,
                         "source-layer": "lamun",
                         paint: {
-                            "line-color": "#1f5f85",
+                            "line-color": "#1e40af",
                             "line-opacity": 0.95,
                             "line-width": [
                                 "interpolate",
@@ -365,12 +311,12 @@ export default function MapView({
                             ],
                             "circle-opacity": 0.95,
                             "circle-stroke-width": 1,
-                            "circle-stroke-color": "#154360",
+                            "circle-stroke-color": "#1e3a8a",
                             "circle-stroke-opacity": 0.9,
                         },
                     },
 
-                    // Dugong (point-only)
+                    // Dugong
                     {
                         id: L.dgPoint,
                         type: "circle",
@@ -391,7 +337,7 @@ export default function MapView({
                             ],
                             "circle-opacity": 0.95,
                             "circle-stroke-width": 1,
-                            "circle-stroke-color": "#1f1f1f",
+                            "circle-stroke-color": "#374151",
                             "circle-stroke-opacity": 0.9,
                         },
                     },
@@ -411,36 +357,20 @@ export default function MapView({
         const detach = attachLoading(map);
         map.on("load", () => setIsLoaded(true));
 
-        // ===== POPUP SATU-LAYER (PUTIH, RESPONSIF, FOKUS KONDISI) =====
+        // ===== inject CSS kecil untuk popup
         if (!document.getElementById("gx-one-popup-style")) {
             const style = document.createElement("style");
             style.id = "gx-one-popup-style";
             style.textContent = `
         .maplibregl-popup.gx-one .maplibregl-popup-content{
-          background:#ffffff;
-          color:#111827;
-          border:1px solid #E5E7EB;
-          border-radius:12px;
-          box-shadow:0 10px 24px rgba(0,0,0,.08);
-          padding:14px 16px;
-          min-width:220px;
-          max-width:320px;
+          background:#ffffff; color:#111827; border:1px solid #E5E7EB;
+          border-radius:12px; box-shadow:0 10px 24px rgba(0,0,0,.08);
+          padding:14px 16px; min-width:220px; max-width:320px;
         }
-        .maplibregl-popup.gx-one .maplibregl-popup-close-button{
-          color:#6B7280;
-          font-size:18px;
-          right:6px; top:4px;
-        }
-        .maplibregl-popup.gx-one .maplibregl-popup-tip{
-          border-top-color:#ffffff;
-          border-bottom-color:#ffffff;
-        }
-        .gx-row{display:flex;justify-content:center;align-items:center}
         .gx-badge{
           display:inline-flex;align-items:center;gap:8px;
           padding:10px 14px;border-radius:9999px;
-          font-size:13px;font-weight:800;line-height:1;
-          border:1px solid;
+          font-size:13px;font-weight:800;line-height:1;border:1px solid;
         }
         .gx-dot{width:8px;height:8px;border-radius:9999px;display:inline-block}
         .gx-title{font-weight:700;font-size:13px;margin-bottom:8px;opacity:.9}
@@ -464,70 +394,84 @@ export default function MapView({
                 return {};
             }
         };
-        const getKondisi = (f) => {
+
+        // Ambil label: kondisi (dugong) atau kriteria (lamun)
+        const getLabel = (f) => {
             const p = f.properties || {};
             const props = safeJson(p.props);
-            return String(props.kondisi ?? p.kondisi ?? "n/a").toLowerCase();
-        };
-        const tone = (k) => {
-            if (k === "hidup")
-                return { bg: "#ECFDF5", fg: "#065F46", bd: "#10B981" };
-            if (k === "terluka")
-                return { bg: "#FFFBEB", fg: "#92400E", bd: "#F59E0B" };
-            if (k === "mati")
-                return { bg: "#FEF2F2", fg: "#7F1D1D", bd: "#EF4444" };
-            return { bg: "#F3F4F6", fg: "#374151", bd: "#D1D5DB" };
-        };
-        const icon = (k) => {
-            if (k === "hidup")
-                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
-            if (k === "terluka")
-                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M12 3v4m0 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
-            if (k === "mati")
-                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
-            return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/></svg>`;
+            const raw = String(
+                p.kondisi ??
+                    props.condition ??
+                    p.kriteria ??
+                    props.Kriteria ??
+                    "n/a"
+            ).toLowerCase();
+            if (raw.includes("hidup")) return "hidup";
+            if (raw.includes("terluka")) return "terluka";
+            if (raw.includes("mati")) return "mati";
+            const k = String(p.kriteria ?? "").toLowerCase();
+            if (k) return k.replace(/_/g, " ");
+            return "n/a";
         };
 
-        const htmlKondisiOnly = (title, kondisi) => {
-            const c = tone(kondisi);
+        const tone = (k) => {
+            // Dugong colors
+            if (k.includes("hidup"))
+                return { bg: "#F3E8FF", fg: "#581C87", bd: "#8b5cf6" };
+            if (k.includes("terluka"))
+                return { bg: "#FEF3C7", fg: "#92400E", bd: "#eab308" };
+            if (k.includes("mati"))
+                return { bg: "#FEF2F2", fg: "#7F1D1D", bd: "#ef4444" };
+            
+            // Lamun colors
+            if (k.includes("sangat padat"))
+                return { bg: "#EFF6FF", fg: "#1e3a8a", bd: "#1e3a8a" };
+            if (k.includes("padat"))
+                return { bg: "#EFF6FF", fg: "#1e40af", bd: "#1e40af" };
+            if (k.includes("sedang"))
+                return { bg: "#EFF6FF", fg: "#3b82f6", bd: "#3b82f6" };
+            if (k.includes("jarang"))
+                return { bg: "#EFF6FF", fg: "#60a5fa", bd: "#60a5fa" };
+                
+            return { bg: "#F3F4F6", fg: "#374151", bd: "#D1D5DB" };
+        };
+
+        const htmlBadge = (title, text) => {
+            const c = tone(text);
             return `
         <div>
           <div class="gx-title">${escapeHtml(title)}</div>
-          <div class="gx-row">
+          <div style="display:flex;justify-content:center;align-items:center">
             <span class="gx-badge" style="background:${c.bg};color:${
                 c.fg
             };border-color:${c.bd}">
               <span class="gx-dot" style="background:${c.bd}"></span>
-              ${icon(kondisi)}
               <span style="text-transform:uppercase;letter-spacing:.6px">${escapeHtml(
-                  kondisi
+                  text
               )}</span>
             </span>
           </div>
-        </div>
-      `;
+        </div>`;
         };
 
         const showPopup = (title) => (e) => {
             const f = e.features?.[0];
             if (!f) return;
-            const kondisi = getKondisi(f);
+            const label = getLabel(f);
             map.getCanvas().style.cursor = "pointer";
             popup
                 .setLngLat(e.lngLat)
-                .setHTML(htmlKondisiOnly(title, kondisi))
+                .setHTML(htmlBadge(title, label))
                 .addTo(map);
         };
         const hideCursor = () => (map.getCanvas().style.cursor = "");
 
-        // Binding click (judul rapi & konsisten)
+        // Click/hover binding
         map.on("click", L.mgFill, showPopup("Kawasan Area Mangrove"));
         map.on("click", L.mgPoint, showPopup("Titik Temuan Mangrove"));
         map.on("click", L.lmFill, showPopup("Kawasan Area Lamun"));
         map.on("click", L.lmPoint, showPopup("Titik Temuan Lamun"));
         map.on("click", L.dgPoint, showPopup("Titik Temuan Dugong"));
-
-        // Hover
         [L.mgFill, L.mgPoint, L.lmFill, L.lmPoint, L.dgPoint].forEach((id) => {
             map.on(
                 "mouseenter",
@@ -546,24 +490,10 @@ export default function MapView({
         };
     }, []);
 
-    // NEW: toggle basemap saat pilihan berubah
+    // apply visibility + filter
     useEffect(() => {
         if (!isLoaded) return;
-        const m = mapRef.current;
-        if (!m) return;
-        Object.entries(BASE_LAYERS).forEach(([key, layerId]) => {
-            if (!m.getLayer(layerId)) return;
-            m.setLayoutProperty(
-                layerId,
-                "visibility",
-                key === basemap ? "visible" : "none"
-            );
-        });
-    }, [isLoaded, basemap]);
 
-    // apply visibility + filter saat state berubah (debounced)
-    useEffect(() => {
-        if (!isLoaded) return;
         const condList = (layer) =>
             Object.entries(dCond?.[layer] || {})
                 .filter(([, v]) => v)
@@ -579,28 +509,109 @@ export default function MapView({
             dVis.visibleMangrove && !!dGeom?.mangrove?.polygon
         );
         setVisible(L.mgPoint, dVis.visibleMangrove && !!dGeom?.mangrove?.point);
-        const mgF = makeCondFilter(condList("mangrove"));
-        setFilter(L.mgFill, ["all", bothPoly, mgF]);
-        setFilter(L.mgLine, ["all", bothPoly, mgF]);
-        setFilter(L.mgPoint, ["all", bothPoint, mgF]);
+        setFilter(L.mgFill, ["all", bothPoly, true]);
+        setFilter(L.mgLine, ["all", bothPoly, true]);
+        setFilter(L.mgPoint, ["all", bothPoint, true]);
 
-        // Lamun
+        // Lamun → filter kriteria (snake_case)
+        const lmAllowed = condList("lamun");
+        const lmF = makeKriteriaFilterLamun(lmAllowed);
         setVisible(L.lmFill, dVis.visibleLamun && !!dGeom?.lamun?.polygon);
         setVisible(L.lmLine, dVis.visibleLamun && !!dGeom?.lamun?.polygon);
         setVisible(L.lmPoint, dVis.visibleLamun && !!dGeom?.lamun?.point);
-        const lmF = makeCondFilter(condList("lamun"));
         setFilter(L.lmFill, ["all", bothPoly, lmF]);
         setFilter(L.lmLine, ["all", bothPoly, lmF]);
         setFilter(L.lmPoint, ["all", bothPoint, lmF]);
 
-        // Dugong (point only)
+        // Dugong → filter kondisi
+        const dgAllowed = condList("dugong");
+        const dgF = makeCondFilterDugong(dgAllowed);
         setVisible(L.dgPoint, dVis.visibleDugong && !!dGeom?.dugong?.point);
-        const dgF = makeCondFilter(condList("dugong"));
         setFilter(L.dgPoint, ["all", bothPoint, dgF]);
     }, [isLoaded, dVis, dCond, dGeom]);
 
+    // Check if any layer is visible for legend
+    const hasActiveLayers = visibleMangrove || visibleLamun || visibleDugong;
+
+    const LegendItem = ({ color, label }) => (
+        <div className="flex items-center gap-2 text-xs">
+            <div 
+                className="w-4 h-4 rounded border border-gray-300"
+                style={{ backgroundColor: color }}
+            />
+            <span className="text-gray-700">{label}</span>
+        </div>
+    );
+
+    const Legend = () => {
+        if (!hasActiveLayers) return null;
+
+        return (
+            <div className="absolute bottom-4 right-4 z-10 pointer-events-auto">
+                {/* Toggle button for small screens */}
+                <div className="md:hidden">
+                    <button
+                        onClick={() => setLegendOpen(!legendOpen)}
+                        className="mb-2 w-10 h-10 bg-white rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:shadow-xl transition-shadow"
+                        title={legendOpen ? "Tutup legenda" : "Buka legenda"}
+                    >
+                        <svg 
+                            className={`w-5 h-5 text-gray-600 transition-transform ${legendOpen ? 'rotate-90' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Legend content */}
+                <div className={`bg-white/95 backdrop-blur rounded-lg shadow-xl border border-gray-200 p-3 min-w-[180px] transition-all duration-200 md:opacity-100 md:scale-100 md:pointer-events-auto ${
+                    legendOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                }`}>
+                    <div className="text-sm font-semibold text-gray-800 mb-2">Legenda</div>
+                    <div className="space-y-2">
+                        {visibleMangrove && (
+                            <div>
+                                <div className="text-xs font-medium text-gray-600 mb-1">Mangrove</div>
+                                <LegendItem color="#27ae60" label="Area Mangrove" />
+                            </div>
+                        )}
+                        
+                        {visibleLamun && (
+                            <div>
+                                <div className="text-xs font-medium text-gray-600 mb-1">Lamun</div>
+                                <div className="space-y-1 pl-2">
+                                    <LegendItem color="#1e3a8a" label="Sangat Padat" />
+                                    <LegendItem color="#1e40af" label="Padat" />
+                                    <LegendItem color="#3b82f6" label="Sedang" />
+                                    <LegendItem color="#60a5fa" label="Jarang" />
+                                </div>
+                            </div>
+                        )}
+                        
+                        {visibleDugong && (
+                            <div>
+                                <div className="text-xs font-medium text-gray-600 mb-1">Dugong</div>
+                                <div className="space-y-1 pl-2">
+                                    <LegendItem color="#8b5cf6" label="Hidup" />
+                                    <LegendItem color="#eab308" label="Terluka" />
+                                    <LegendItem color="#ef4444" label="Mati" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+        <div className="relative w-full h-full">
+            <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+            <Legend />
+        </div>
     );
 }
 
@@ -611,8 +622,4 @@ function escapeHtml(str) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
-}
-function fmt(n) {
-    const x = Number(n);
-    return Number.isFinite(x) ? x.toFixed(5) : String(n);
 }

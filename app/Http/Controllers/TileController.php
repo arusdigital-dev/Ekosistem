@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Redis;
 
 class TileController extends Controller
 {
+    // Tiga layer utama; laporan_spasial: nanti
     private array $layers = ['mangrove','lamun','dugong'];
 
     public function mvt(Request $r, string $layer, int $z, int $x, int $y)
@@ -21,21 +22,46 @@ class TileController extends Controller
                 return response('', 204);
             }
 
-            $catId = DB::connection('pgsql')
-                ->table('categories')->where('name',$layer)->value('id');
-
-            $conds      = $this->parseCommaList($r->query('cond'));
+            // ===== filters dari querystring =====
+            $conds      = $this->parseCommaList($r->query('cond')); // dugong
+            $krits      = $this->parseCommaList($r->query('krit')); // lamun
             $geomFilter = $this->parseCommaList($r->query('geom'));
 
             $extraWhere = '';
             $bindings   = [];
 
-            if (!empty($conds)) {
-                $in = implode(',', array_fill(0, count($conds), '?'));
-                $extraWhere .= " AND lower(coalesce(t.props->>'kondisi','')) IN ($in) ";
-                array_push($bindings, ...array_map('strtolower', $conds));
+            // Kondisi (dugong saja) — direct string comparison dengan normalisasi sederhana
+            if (!empty($conds) && $layer === 'dugong') {
+                $conditionParts = [];
+                foreach ($conds as $c) {
+                    if ($c === 'hidup') {
+                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'hidup'";
+                    } elseif ($c === 'mati') {
+                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE 'mati%'";
+                    } elseif ($c === 'terluka') {
+                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE '%terluka%'";
+                    }
+                }
+                if ($conditionParts) {
+                    $extraWhere .= " AND (".implode(' OR ', $conditionParts).") ";
+                }
             }
 
+            // Kriteria (lamun saja) — menggunakan field name langsung, filter hanya kategori lamun
+            if (!empty($krits) && $layer === 'lamun') {
+                $lamunConditions = [];
+                foreach ($krits as $k) {
+                    if (in_array($k, ['sangat_padat', 'padat', 'sedang', 'jarang'], true)) {
+                        $lamunConditions[] = "lower(coalesce(t.name,'')) = ?";
+                        $bindings[] = 'lamun ' . str_replace('_', ' ', $k);
+                    }
+                }
+                if ($lamunConditions) {
+                    $extraWhere .= " AND (".implode(' OR ', $lamunConditions).") ";
+                }
+            }
+
+            // Filter tipe geometri (opsional)
             if (!empty($geomFilter) && count($geomFilter) < 2) {
                 if (in_array('point', $geomFilter, true)) {
                     $extraWhere .= " AND GeometryType(t.geom_3857) IN ('ST_Point','ST_MultiPoint') ";
@@ -44,29 +70,34 @@ class TileController extends Controller
                 }
             }
 
-            $srcSql = "
-              (
-                SELECT id, props, geom_3857
-                FROM {$layer}
+            // Sumber: langsung tabel layer dengan field name untuk lamun
+            $srcSql = ($layer === 'lamun')
+                ? " ( SELECT id, name, props, geom_3857 FROM {$layer} ) AS t "
+                : " ( SELECT id, props, geom_3857 FROM {$layer} ) AS t ";
 
-                UNION ALL
+            // properti turunan untuk payload MVT
+            $kondisiSql = ($layer === 'dugong')
+                ? "lower(coalesce(t.props->>'condition','')) AS kondisi"
+                : "NULL::text AS kondisi";
 
-                SELECT ls.id, ls.props, ls.geom_3857
-                FROM laporan_spasial ls
-                WHERE ls.status = 'approved' " . ($catId ? " AND ls.category_id = ?" : " AND 1=0") . "
-              ) AS t
-            ";
-            $srcBindings = $catId ? [$catId] : [];
+            $kriteriaSql = ($layer === 'lamun')
+                ? "CASE 
+                    WHEN lower(coalesce(t.name,'')) = 'lamun sangat padat' THEN 'sangat_padat'
+                    WHEN lower(coalesce(t.name,'')) = 'lamun padat' THEN 'padat'
+                    WHEN lower(coalesce(t.name,'')) = 'lamun sedang' THEN 'sedang'
+                    WHEN lower(coalesce(t.name,'')) = 'lamun jarang' THEN 'jarang'
+                    ELSE NULL
+                  END AS kriteria"
+                : "NULL::text AS kriteria";
 
             $sql = "
               WITH b AS (SELECT ST_TileEnvelope(?, ?, ?) AS env),
               q AS (
                 SELECT
-                  ST_AsMVTGeom(
-                    t.geom_3857,
-                    b.env, 4096, 64, true
-                  ) AS geom,
+                  ST_AsMVTGeom(t.geom_3857, b.env, 4096, 64, true) AS geom,
                   COALESCE(t.props, '{}'::jsonb) AS props,
+                  $kondisiSql,
+                  $kriteriaSql,
                   NULLIF(t.id, 0) AS id
                 FROM $srcSql, b
                 WHERE t.geom_3857 IS NOT NULL
@@ -79,24 +110,26 @@ class TileController extends Controller
               WHERE q.geom IS NOT NULL;
             ";
 
+            // caching
             $repo = Cache::store('redis');
             $ttl  = (int) env('MVT_TILE_TTL_SECONDS', 1800);
 
             $keyParts = [$layer,$z,$x,$y];
             if (!empty($conds))      { $keyParts[] = 'c='.implode(',', $conds); }
+            if (!empty($krits))      { $keyParts[] = 'k='.implode(',', $krits); }
             if (!empty($geomFilter)) { $keyParts[] = 'g='.implode(',', $geomFilter); }
+
             $cacheKey   = 'mvt:'.implode(':', $keyParts);
             $layerIndex = "mvt:idx:$layer";
 
-            $tileBinary = $repo->remember($cacheKey, $ttl, function () use ($sql,$z,$x,$y,$srcBindings,$bindings,$layer,$cacheKey,$layerIndex) {
-                $params = array_merge([$z,$x,$y], $srcBindings, $bindings, [$layer]);
+            $tileBinary = $repo->remember($cacheKey, $ttl, function () use ($sql,$z,$x,$y,$bindings,$layer,$cacheKey,$layerIndex) {
+                $params = array_merge([$z,$x,$y], $bindings, [$layer]);
                 $result = DB::connection('pgsql')->selectOne($sql, $params);
                 if (!$result || empty($result->tile_b64)) return null;
 
                 $bin = base64_decode($result->tile_b64, true);
                 if ($bin === false) return null;
 
-                // daftar key ke index Redis per-layer
                 try {
                     Redis::sadd($layerIndex, [$cacheKey]);
                     $ttl = (int) env('MVT_TILE_TTL_SECONDS', 1800);
@@ -127,19 +160,42 @@ class TileController extends Controller
         if (!app()->environment('local')) abort(404);
         abort_unless(in_array($layer, $this->layers, true), 404);
 
-        $catId = DB::connection('pgsql')->table('categories')->where('name',$layer)->value('id');
-
         $conds      = $this->parseCommaList($r->query('cond'));
+        $krits      = $this->parseCommaList($r->query('krit'));
         $geomFilter = $this->parseCommaList($r->query('geom'));
 
         $extraWhere = '';
         $bindings   = [];
 
-        if (!empty($conds)) {
-            $in = implode(',', array_fill(0, count($conds), '?'));
-            $extraWhere .= " AND lower(coalesce(t.props->>'kondisi','')) IN ($in) ";
-            array_push($bindings, ...array_map('strtolower', $conds));
+        if (!empty($conds) && $layer === 'dugong') {
+            $conditionParts = [];
+            foreach ($conds as $c) {
+                if ($c === 'hidup') {
+                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'hidup'";
+                } elseif ($c === 'mati') {
+                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE 'mati%'";
+                } elseif ($c === 'terluka') {
+                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE '%terluka%'";
+                }
+            }
+            if ($conditionParts) {
+                $extraWhere .= " AND (".implode(' OR ', $conditionParts).") ";
+            }
         }
+
+        if (!empty($krits) && $layer === 'lamun') {
+            $lamunConditions = [];
+            foreach ($krits as $k) {
+                if (in_array($k, ['sangat_padat', 'padat', 'sedang', 'jarang'], true)) {
+                    $lamunConditions[] = "lower(coalesce(t.name,'')) = ?";
+                    $bindings[] = 'lamun ' . str_replace('_', ' ', $k);
+                }
+            }
+            if ($lamunConditions) {
+                $extraWhere .= " AND (".implode(' OR ', $lamunConditions).") ";
+            }
+        }
+
         if (!empty($geomFilter) && count($geomFilter) < 2) {
             if (in_array('point', $geomFilter, true)) {
                 $extraWhere .= " AND GeometryType(t.geom_3857) IN ('ST_Point','ST_MultiPoint') ";
@@ -148,25 +204,27 @@ class TileController extends Controller
             }
         }
 
-        $srcSql = "
-          (
-            SELECT id, props, geom_3857 FROM {$layer}
-            UNION ALL
-            SELECT ls.id, ls.props, ls.geom_3857
-            FROM laporan_spasial ls
-            WHERE ls.status='approved' " . ($catId ? " AND ls.category_id = ?" : " AND 1=0") . "
-          ) AS t
-        ";
-        $srcBindings = $catId ? [$catId] : [];
+        $srcSql = ($layer === 'lamun')
+            ? " ( SELECT id, name, props, geom_3857 FROM {$layer} ) AS t "
+            : " ( SELECT id, props, geom_3857 FROM {$layer} ) AS t ";
 
         $sql = "
           WITH b AS (SELECT ST_TileEnvelope(?, ?, ?) AS env)
           SELECT 
             t.id,
-            ST_SRID(t.geom_3857) as srid,
-            ST_IsValid(t.geom_3857) as is_valid,
-            ST_GeometryType(t.geom_3857) as geom_type,
-            ST_AsText(ST_Centroid(t.geom_3857)) as centroid,
+            ST_SRID(t.geom_3857)                               AS srid,
+            ST_IsValid(t.geom_3857)                            AS is_valid,
+            ST_GeometryType(t.geom_3857)                       AS geom_type,
+            ST_AsText(ST_Centroid(t.geom_3857))                AS centroid_3857,
+            ST_AsText(ST_Transform(ST_Centroid(t.geom_3857),4326)) AS centroid_4326,
+            lower(coalesce(t.props->>'condition',''))          AS kondisi,  -- dugong
+            CASE 
+              WHEN lower(coalesce(t.name,'')) = 'lamun sangat padat' THEN 'sangat_padat'
+              WHEN lower(coalesce(t.name,'')) = 'lamun padat' THEN 'padat'
+              WHEN lower(coalesce(t.name,'')) = 'lamun sedang' THEN 'sedang'
+              WHEN lower(coalesce(t.name,'')) = 'lamun jarang' THEN 'jarang'
+              ELSE NULL
+            END                                                AS kriteria, -- lamun
             t.props
           FROM $srcSql, b
           WHERE t.geom_3857 IS NOT NULL
@@ -175,12 +233,12 @@ class TileController extends Controller
           LIMIT 10;
         ";
 
-        $features = DB::connection('pgsql')->select($sql, array_merge([$z,$x,$y], $srcBindings, $bindings));
+        $features = DB::connection('pgsql')->select($sql, array_merge([$z,$x,$y], $bindings));
 
         return response()->json([
             'layer'=>$layer,
             'tile'=>"$z/$x/$y",
-            'filters'=>['cond'=>$conds, 'geom'=>$geomFilter],
+            'filters'=>['cond'=>$conds, 'krit'=>$krits, 'geom'=>$geomFilter],
             'count'=>count($features),
             'features'=>$features,
             'bbox'=>$this->getTileBbox($z,$x,$y),

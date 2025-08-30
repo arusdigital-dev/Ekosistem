@@ -9,23 +9,28 @@ export default function Peta() {
         dugong: false,
     });
 
+    // Filter:
+    // - dugong: kondisi
+    // - lamun : kriteria (snake_case)
     const [cond, setCond] = useState({
-        mangrove: { hidup: false, mati: false },
-        lamun: { hidup: false, mati: false },
+        mangrove: {}, // no filter
+        lamun: {
+            sangat_padat: false,
+            padat: false,
+            sedang: false,
+            jarang: false,
+        },
         dugong: { hidup: false, mati: false, terluka: false },
     });
 
     const [geom, setGeom] = useState({
         mangrove: { point: false, polygon: false },
         lamun: { point: false, polygon: false },
-        dugong: { point: false, polygon: false }, // tetap, meski point-only
+        dugong: { point: false, polygon: false }, // point-only; biarkan konsisten UI
     });
 
     const [open, setOpen] = useState(true);
     const [loading, setLoading] = useState(false);
-
-    // NEW: basemap picker
-    const [basemap, setBasemap] = useState("osm"); // "osm" | "light" | "dark" | "satellite" | "terrain"
 
     const toggleLayer = (key) => (e) =>
         setLayers((prev) => ({ ...prev, [key]: e.target.checked }));
@@ -56,17 +61,33 @@ export default function Peta() {
         />
     );
 
+    const getConditionColor = (layer, condition) => {
+        if (layer === 'dugong') {
+            if (condition === 'hidup') return '#8b5cf6';
+            if (condition === 'terluka') return '#eab308';
+            if (condition === 'mati') return '#ef4444';
+        }
+        if (layer === 'lamun') {
+            if (condition === 'sangat_padat') return '#1e3a8a';
+            if (condition === 'padat') return '#1e40af';
+            if (condition === 'sedang') return '#3b82f6';
+            if (condition === 'jarang') return '#60a5fa';
+        }
+        return '#94a3b8';
+    };
+
     const CondRow = ({ layer, options }) => (
-        <div className="pl-6 mt-1 text-[12px] text-gray-700 space-x-2">
+        <div className="pl-6 mt-1 text-[12px] text-gray-700 space-y-1">
             {Object.keys(options).map((k) => (
-                <label key={k} className="inline-flex items-center gap-1 mr-2">
+                <label key={k} className="flex items-center gap-2 mr-2">
                     <input
                         type="checkbox"
                         checked={!!cond[layer][k]}
                         onChange={toggleCond(layer, k)}
                         className="accent-gray-600"
                     />
-                    <span className="capitalize">{k}</span>
+                    <Swatch color={getConditionColor(layer, k)} />
+                    <span className="capitalize">{k.replace(/_/g, " ")}</span>
                 </label>
             ))}
         </div>
@@ -138,7 +159,6 @@ export default function Peta() {
                     cond={cond}
                     geom={geom}
                     onLoadingChange={setLoading}
-                    basemap={basemap} // NEW
                 />
 
                 {/* Panel */}
@@ -184,34 +204,6 @@ export default function Peta() {
                             </div>
 
                             <div className="p-4 space-y-4 text-sm">
-                                {/* Jenis Peta */}
-                                <div className="mb-2">
-                                    <label className="block text-[12px] text-gray-600 mb-1">
-                                        Jenis Peta
-                                    </label>
-                                    <select
-                                        value={basemap}
-                                        onChange={(e) =>
-                                            setBasemap(e.target.value)
-                                        }
-                                        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="osm">OSM Standar</option>
-                                        <option value="light">
-                                            Carto Positron (Light)
-                                        </option>
-                                        <option value="dark">
-                                            Carto Dark Matter
-                                        </option>
-                                        <option value="satellite">
-                                            Esri Satellite
-                                        </option>
-                                        <option value="terrain">
-                                            OpenTopoMap (Terrain)
-                                        </option>
-                                    </select>
-                                </div>
-
                                 {/* Mangrove */}
                                 <div>
                                     <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -221,16 +213,13 @@ export default function Peta() {
                                             onChange={toggleLayer("mangrove")}
                                             className="accent-emerald-600"
                                         />
-                                        <Swatch color="#2ecc71" />
+                                        <Swatch color="#27ae60" />
                                         <span className="truncate">
                                             Mangrove
                                         </span>
                                     </label>
                                     <GeomRow layer="mangrove" />
-                                    <CondRow
-                                        layer="mangrove"
-                                        options={{ hidup: true, mati: true }}
-                                    />
+                                    {/* tidak ada filter kondisi untuk mangrove */}
                                 </div>
 
                                 {/* Lamun */}
@@ -242,17 +231,22 @@ export default function Peta() {
                                             onChange={toggleLayer("lamun")}
                                             className="accent-blue-600"
                                         />
-                                        <Swatch color="#3498db" />
+                                        <Swatch color="#3b82f6" />
                                         <span className="truncate">Lamun</span>
                                     </label>
                                     <GeomRow layer="lamun" />
                                     <CondRow
                                         layer="lamun"
-                                        options={{ hidup: true, mati: true }}
+                                        options={{
+                                            sangat_padat: true,
+                                            padat: true,
+                                            sedang: true,
+                                            jarang: true,
+                                        }}
                                     />
                                 </div>
 
-                                {/* Dugong (point-only) */}
+                                {/* Dugong */}
                                 <div>
                                     <label className="flex items-center gap-2 cursor-pointer select-none">
                                         <input
@@ -261,7 +255,7 @@ export default function Peta() {
                                             onChange={toggleLayer("dugong")}
                                             className="accent-yellow-500"
                                         />
-                                        <Swatch color="#f1c40f" />
+                                        <Swatch color="#8b5cf6" />
                                         <span className="truncate">Dugong</span>
                                     </label>
                                     <GeomRow layer="dugong" pointOnly />
@@ -277,7 +271,7 @@ export default function Peta() {
                             </div>
 
                             <div className="px-4 py-2 border-t border-gray-200 text-[11px] text-gray-600">
-                                Centang layer, pilih tipe geometri dan kondisi.{" "}
+                                Centang layer, pilih tipe geometri & filter.{" "}
                                 {loading ? "Memuat..." : ""}
                             </div>
                         </div>
