@@ -93,7 +93,7 @@ export default function MapView({
     const makeCondFilterDugong = (allowed) => {
         if (!allowed || allowed.length === 0) return true;
         return [
-            "match",
+            "in",
             ["coalesce", ["get", "kondisi"], ""],
             ["literal", allowed],
         ];
