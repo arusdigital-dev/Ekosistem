@@ -62,18 +62,18 @@ export default function Peta() {
     );
 
     const getConditionColor = (layer, condition) => {
-        if (layer === 'dugong') {
-            if (condition === 'hidup') return '#8b5cf6';
-            if (condition === 'terluka') return '#eab308';
-            if (condition === 'mati') return '#ef4444';
+        if (layer === "dugong") {
+            if (condition === "hidup") return "#8b5cf6";
+            if (condition === "terluka") return "#eab308";
+            if (condition === "mati") return "#ef4444";
         }
-        if (layer === 'lamun') {
-            if (condition === 'sangat_padat') return '#1e3a8a';
-            if (condition === 'padat') return '#1e40af';
-            if (condition === 'sedang') return '#3b82f6';
-            if (condition === 'jarang') return '#60a5fa';
+        if (layer === "lamun") {
+            if (condition === "sangat_padat") return "#1e3a8a";
+            if (condition === "padat") return "#1e40af";
+            if (condition === "sedang") return "#3b82f6";
+            if (condition === "jarang") return "#60a5fa";
         }
-        return '#94a3b8';
+        return "#94a3b8";
     };
 
     const CondRow = ({ layer, options }) => (

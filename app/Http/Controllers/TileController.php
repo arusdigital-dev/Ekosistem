@@ -37,9 +37,9 @@ class TileController extends Controller
                     if ($c === 'hidup') {
                         $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'hidup'";
                     } elseif ($c === 'mati') {
-                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE 'mati%'";
+                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'mati'";
                     } elseif ($c === 'terluka') {
-                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE '%terluka%'";
+                        $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'terluka'";
                     }
                 }
                 if ($conditionParts) {
@@ -173,9 +173,9 @@ class TileController extends Controller
                 if ($c === 'hidup') {
                     $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'hidup'";
                 } elseif ($c === 'mati') {
-                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE 'mati%'";
+                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'mati'";
                 } elseif ($c === 'terluka') {
-                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) LIKE '%terluka%'";
+                    $conditionParts[] = "lower(coalesce(t.props->>'condition','')) = 'terluka'";
                 }
             }
             if ($conditionParts) {

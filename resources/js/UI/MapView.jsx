@@ -93,7 +93,7 @@ export default function MapView({
     const makeCondFilterDugong = (allowed) => {
         if (!allowed || allowed.length === 0) return true;
         return [
-            "in",
+            "match",
             ["coalesce", ["get", "kondisi"], ""],
             ["literal", allowed],
         ];
@@ -110,15 +110,14 @@ export default function MapView({
     };
 
     // warna
-    const mgColor = (isPoint = false) => 
-        isPoint ? "#27ae60" : "#2ecc71"; // Mangrove tetap hijau
-    
+    const mgColor = (isPoint = false) => (isPoint ? "#27ae60" : "#2ecc71"); // Mangrove tetap hijau
+
     const lmColor = (isPoint = false) => [
         "match",
         ["coalesce", ["get", "kriteria"], ""],
         "sangat_padat",
         isPoint ? "#1e3a8a" : "#1e40af", // Biru sangat tua
-        "padat", 
+        "padat",
         isPoint ? "#1e40af" : "#3b82f6", // Biru tua
         "sedang",
         isPoint ? "#3b82f6" : "#60a5fa", // Biru sedang
@@ -126,13 +125,13 @@ export default function MapView({
         isPoint ? "#60a5fa" : "#93c5fd", // Biru muda
         /* default */ isPoint ? "#94a3b8" : "#cbd5e1",
     ];
-    
+
     const dgColor = () => [
         "match",
         ["coalesce", ["get", "kondisi"], ""],
         "hidup",
         "#8b5cf6", // Ungu
-        "terluka", 
+        "terluka",
         "#eab308", // Kuning
         "mati",
         "#ef4444", // Merah
@@ -422,7 +421,7 @@ export default function MapView({
                 return { bg: "#FEF3C7", fg: "#92400E", bd: "#eab308" };
             if (k.includes("mati"))
                 return { bg: "#FEF2F2", fg: "#7F1D1D", bd: "#ef4444" };
-            
+
             // Lamun colors
             if (k.includes("sangat padat"))
                 return { bg: "#EFF6FF", fg: "#1e3a8a", bd: "#1e3a8a" };
@@ -432,7 +431,7 @@ export default function MapView({
                 return { bg: "#EFF6FF", fg: "#3b82f6", bd: "#3b82f6" };
             if (k.includes("jarang"))
                 return { bg: "#EFF6FF", fg: "#60a5fa", bd: "#60a5fa" };
-                
+
             return { bg: "#F3F4F6", fg: "#374151", bd: "#D1D5DB" };
         };
 
@@ -535,7 +534,7 @@ export default function MapView({
 
     const LegendItem = ({ color, label }) => (
         <div className="flex items-center gap-2 text-xs">
-            <div 
+            <div
                 className="w-4 h-4 rounded border border-gray-300"
                 style={{ backgroundColor: color }}
             />
@@ -555,48 +554,82 @@ export default function MapView({
                         className="mb-2 w-10 h-10 bg-white rounded-lg shadow-lg border border-gray-200 flex items-center justify-center hover:shadow-xl transition-shadow"
                         title={legendOpen ? "Tutup legenda" : "Buka legenda"}
                     >
-                        <svg 
-                            className={`w-5 h-5 text-gray-600 transition-transform ${legendOpen ? 'rotate-90' : ''}`}
-                            fill="none" 
-                            stroke="currentColor" 
+                        <svg
+                            className={`w-5 h-5 text-gray-600 transition-transform ${
+                                legendOpen ? "rotate-90" : ""
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
                             viewBox="0 0 24 24"
                         >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 6h16M4 12h16M4 18h16"
+                            />
                         </svg>
                     </button>
                 </div>
 
                 {/* Legend content */}
-                <div className={`bg-white/95 backdrop-blur rounded-lg shadow-xl border border-gray-200 p-3 min-w-[180px] transition-all duration-200 md:opacity-100 md:scale-100 md:pointer-events-auto ${
-                    legendOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-                }`}>
-                    <div className="text-sm font-semibold text-gray-800 mb-2">Legenda</div>
+                <div
+                    className={`bg-white/95 backdrop-blur rounded-lg shadow-xl border border-gray-200 p-3 min-w-[180px] transition-all duration-200 md:opacity-100 md:scale-100 md:pointer-events-auto ${
+                        legendOpen
+                            ? "opacity-100 scale-100"
+                            : "opacity-0 scale-95 pointer-events-none"
+                    }`}
+                >
+                    <div className="text-sm font-semibold text-gray-800 mb-2">
+                        Legenda
+                    </div>
                     <div className="space-y-2">
                         {visibleMangrove && (
                             <div>
-                                <div className="text-xs font-medium text-gray-600 mb-1">Mangrove</div>
-                                <LegendItem color="#27ae60" label="Area Mangrove" />
+                                <div className="text-xs font-medium text-gray-600 mb-1">
+                                    Mangrove
+                                </div>
+                                <LegendItem
+                                    color="#27ae60"
+                                    label="Area Mangrove"
+                                />
                             </div>
                         )}
-                        
+
                         {visibleLamun && (
                             <div>
-                                <div className="text-xs font-medium text-gray-600 mb-1">Lamun</div>
+                                <div className="text-xs font-medium text-gray-600 mb-1">
+                                    Lamun
+                                </div>
                                 <div className="space-y-1 pl-2">
-                                    <LegendItem color="#1e3a8a" label="Sangat Padat" />
+                                    <LegendItem
+                                        color="#1e3a8a"
+                                        label="Sangat Padat"
+                                    />
                                     <LegendItem color="#1e40af" label="Padat" />
-                                    <LegendItem color="#3b82f6" label="Sedang" />
-                                    <LegendItem color="#60a5fa" label="Jarang" />
+                                    <LegendItem
+                                        color="#3b82f6"
+                                        label="Sedang"
+                                    />
+                                    <LegendItem
+                                        color="#60a5fa"
+                                        label="Jarang"
+                                    />
                                 </div>
                             </div>
                         )}
-                        
+
                         {visibleDugong && (
                             <div>
-                                <div className="text-xs font-medium text-gray-600 mb-1">Dugong</div>
+                                <div className="text-xs font-medium text-gray-600 mb-1">
+                                    Dugong
+                                </div>
                                 <div className="space-y-1 pl-2">
                                     <LegendItem color="#8b5cf6" label="Hidup" />
-                                    <LegendItem color="#eab308" label="Terluka" />
+                                    <LegendItem
+                                        color="#eab308"
+                                        label="Terluka"
+                                    />
                                     <LegendItem color="#ef4444" label="Mati" />
                                 </div>
                             </div>
@@ -609,7 +642,10 @@ export default function MapView({
 
     return (
         <div className="relative w-full h-full">
-            <div ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+            <div
+                ref={mapContainerRef}
+                style={{ width: "100%", height: "100%" }}
+            />
             <Legend />
         </div>
     );
