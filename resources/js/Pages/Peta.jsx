@@ -68,10 +68,10 @@ export default function Peta() {
             if (condition === "mati") return "#ef4444";
         }
         if (layer === "lamun") {
-            if (condition === "sangat_padat") return "#1e3a8a";
-            if (condition === "padat") return "#1e40af";
-            if (condition === "sedang") return "#3b82f6";
-            if (condition === "jarang") return "#60a5fa";
+            if (condition === "sangat_padat") return "#3338A0";
+            if (condition === "padat") return "#2F7FFF";
+            if (condition === "sedang") return "#00809D";
+            if (condition === "jarang") return "#33A1E0";
         }
         return "#94a3b8";
     };
@@ -93,7 +93,7 @@ export default function Peta() {
         </div>
     );
 
-    const GeomRow = ({ layer, pointOnly = false }) => (
+    const GeomRow = ({ layer, pointOnly = false, showPoint = true }) => (
         <div className="pl-6 mt-1 text-[12px] text-gray-700 space-x-2">
             {!pointOnly && (
                 <label className="inline-flex items-center gap-1 mr-2">
@@ -106,15 +106,17 @@ export default function Peta() {
                     <span>Area Kawasan</span>
                 </label>
             )}
-            <label className="inline-flex items-center gap-1 mr-2">
-                <input
-                    type="checkbox"
-                    checked={geom[layer].point}
-                    onChange={toggleGeom(layer, "point")}
-                    className="accent-gray-600"
-                />
-                <span>Titik Temuan</span>
-            </label>
+            {showPoint && (
+                <label className="inline-flex items-center gap-1 mr-2">
+                    <input
+                        type="checkbox"
+                        checked={geom[layer].point}
+                        onChange={toggleGeom(layer, "point")}
+                        className="accent-gray-600"
+                    />
+                    <span>Titik Temuan</span>
+                </label>
+            )}
         </div>
     );
 
@@ -218,7 +220,11 @@ export default function Peta() {
                                             Mangrove
                                         </span>
                                     </label>
-                                    <GeomRow layer="mangrove" />
+                                    <GeomRow
+                                        layer="mangrove"
+                                        pointOnly={false}
+                                        showPoint={false}
+                                    />
                                     {/* tidak ada filter kondisi untuk mangrove */}
                                 </div>
 
@@ -234,7 +240,11 @@ export default function Peta() {
                                         <Swatch color="#3b82f6" />
                                         <span className="truncate">Lamun</span>
                                     </label>
-                                    <GeomRow layer="lamun" />
+                                    <GeomRow
+                                        layer="lamun"
+                                        pointOnly={false}
+                                        showPoint={false}
+                                    />
                                     <CondRow
                                         layer="lamun"
                                         options={{

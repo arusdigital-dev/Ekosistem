@@ -116,13 +116,13 @@ export default function MapView({
         "match",
         ["coalesce", ["get", "kriteria"], ""],
         "sangat_padat",
-        isPoint ? "#1e3a8a" : "#1e40af", // Biru sangat tua
+        isPoint ? "#3338A0" : "#3338A0",
         "padat",
-        isPoint ? "#1e40af" : "#3b82f6", // Biru tua
+        isPoint ? "#2F7FFF" : "#2F7FFF",
         "sedang",
-        isPoint ? "#3b82f6" : "#60a5fa", // Biru sedang
+        isPoint ? "#00809D" : "#00809D",
         "jarang",
-        isPoint ? "#60a5fa" : "#93c5fd", // Biru muda
+        isPoint ? "#33A1E0" : "#33A1E0",
         /* default */ isPoint ? "#94a3b8" : "#cbd5e1",
     ];
 
@@ -423,14 +423,15 @@ export default function MapView({
                 return { bg: "#FEF2F2", fg: "#7F1D1D", bd: "#ef4444" };
 
             // Lamun colors
+            // Lamun colors
             if (k.includes("sangat padat"))
-                return { bg: "#EFF6FF", fg: "#1e3a8a", bd: "#1e3a8a" };
+                return { bg: "#E7F4E7", fg: "##3338A0", bd: "##3338A0" };
             if (k.includes("padat"))
-                return { bg: "#EFF6FF", fg: "#1e40af", bd: "#1e40af" };
+                return { bg: "#E8F0FF", fg: "#2F7FFF", bd: "#2F7FFF" };
             if (k.includes("sedang"))
-                return { bg: "#EFF6FF", fg: "#3b82f6", bd: "#3b82f6" };
+                return { bg: "#E8E9FF", fg: "#00809D", bd: "#00809D" };
             if (k.includes("jarang"))
-                return { bg: "#EFF6FF", fg: "#60a5fa", bd: "#60a5fa" };
+                return { bg: "#E6F7FD", fg: "#155E75", bd: "#33A1E0" };
 
             return { bg: "#F3F4F6", fg: "#374151", bd: "#D1D5DB" };
         };
@@ -507,7 +508,8 @@ export default function MapView({
             L.mgLine,
             dVis.visibleMangrove && !!dGeom?.mangrove?.polygon
         );
-        setVisible(L.mgPoint, dVis.visibleMangrove && !!dGeom?.mangrove?.point);
+
+        setVisible(L.mgPoint, false);
         setFilter(L.mgFill, ["all", bothPoly, true]);
         setFilter(L.mgLine, ["all", bothPoly, true]);
         setFilter(L.mgPoint, ["all", bothPoint, true]);
@@ -517,7 +519,8 @@ export default function MapView({
         const lmF = makeKriteriaFilterLamun(lmAllowed);
         setVisible(L.lmFill, dVis.visibleLamun && !!dGeom?.lamun?.polygon);
         setVisible(L.lmLine, dVis.visibleLamun && !!dGeom?.lamun?.polygon);
-        setVisible(L.lmPoint, dVis.visibleLamun && !!dGeom?.lamun?.point);
+
+        setVisible(L.lmPoint, false);
         setFilter(L.lmFill, ["all", bothPoly, lmF]);
         setFilter(L.lmLine, ["all", bothPoly, lmF]);
         setFilter(L.lmPoint, ["all", bothPoint, lmF]);
@@ -603,16 +606,16 @@ export default function MapView({
                                 </div>
                                 <div className="space-y-1 pl-2">
                                     <LegendItem
-                                        color="#1e3a8a"
+                                        color="#3338A0"
                                         label="Sangat Padat"
                                     />
-                                    <LegendItem color="#1e40af" label="Padat" />
+                                    <LegendItem color="#2F7FFF" label="Padat" />
                                     <LegendItem
-                                        color="#3b82f6"
+                                        color="#00809D"
                                         label="Sedang"
                                     />
                                     <LegendItem
-                                        color="#60a5fa"
+                                        color="#33A1E0"
                                         label="Jarang"
                                     />
                                 </div>
